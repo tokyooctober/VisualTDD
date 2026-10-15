@@ -53,8 +53,11 @@ export function build(dir, raw) {
 export const dataOf = (html) => JSON.parse(html.match(/var DATA = (.*);\r?\n/)[1]);
 
 /** Just enough DOM for template.html's script: elements found by id, and innerHTML that registers the ids it contains. */
-export function openPage(html, { storage = new Map(), dark = false, clipboard = 'ok' } = {}) {
-  const ids = new Map(), observers = [], copied = [];
+// clipboard: 'ok' or 'denied' for navigator.clipboard.writeText. execCopy: whether document.execCommand('copy') works;
+// it copies the value of the element last select()ed. copiedBy records which way each copy went.
+export function openPage(html, { storage = new Map(), dark = false, clipboard = 'ok', execCopy = false } = {}) {
+  const ids = new Map(), observers = [], copied = [], copiedBy = [];
+  let selected = null;
   class Element {
     constructor(tag, attrs = '') {
       this.tagName = tag.toUpperCase(); this.children = []; this.listeners = {}; this.attrs = {};
@@ -71,7 +74,7 @@ export function openPage(html, { storage = new Map(), dark = false, clipboard = 
     setAttribute(k, v) { this.attrs[k] = String(v); for (const fn of observers) fn([]); }
     getAttribute(k) { return this.attrs[k] ?? null; }
     removeAttribute(k) { delete this.attrs[k]; for (const fn of observers) fn([]); }
-    focus() {} select() {}
+    focus() {} select() { selected = this; }
   }
   function parse(s) {
     return [...s.matchAll(/<(\w+)([^>]*)>/g)].map(([, tag, attrs]) => {
@@ -86,19 +89,20 @@ export function openPage(html, { storage = new Map(), dark = false, clipboard = 
     documentElement: new Element('html'),
     getElementById: (id) => ids.get(id) ?? null,
     createElement: (tag) => new Element(tag),
+    execCommand: (cmd) => { if (cmd !== 'copy' || !execCopy || !selected) return false; copied.push(selected.value); copiedBy.push('execCommand'); return true; },
   };
   const ctx = {
     document, location: { pathname: '/docs/test-map.html' }, innerWidth: 1200,
     matchMedia: () => media,
     MutationObserver: class { constructor(fn) { this.fn = fn; } observe() { observers.push(this.fn); } },
     localStorage: { getItem: (k) => storage.get(k) ?? null, setItem: (k, v) => storage.set(k, String(v)), removeItem: (k) => storage.delete(k) },
-    navigator: { clipboard: { writeText: (t) => (clipboard === 'ok' ? (copied.push(t), Promise.resolve()) : Promise.reject(new Error('denied'))) } },
+    navigator: { clipboard: { writeText: (t) => (clipboard === 'ok' ? (copied.push(t), copiedBy.push('clipboard'), Promise.resolve()) : Promise.reject(new Error('denied'))) } },
   };
   ctx.window = ctx;
   vm.runInNewContext(html.match(/<script>([\s\S]*)<\/script>/)[1], ctx);
   const $ = (id) => ids.get(id);
   return {
-    $, storage, copied,
+    $, storage, copied, copiedBy,
     key: 'visualtdd-colors:/docs/test-map.html:' + dataOf(html).title,
     pick(k, hex) { $(`pick-${k}`).value = hex; $(`pick-${k}`).dispatch('input'); },
     theme(t) { document.documentElement.setAttribute('data-theme', t); },

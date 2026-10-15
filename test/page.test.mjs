@@ -178,7 +178,7 @@ test('when the clipboard is refused, Copy as config shows the JSON in a box to c
   await flush();
   assert.equal(page.$('copybox').hidden, false);
   assert.deepEqual(JSON.parse(page.$('copybox').value).categories.map((c) => c.k), m.categories.map((c) => c.k));
-  assert.match(page.$('status').textContent, /Copy the text below/);
+  assert.match(page.$('status').textContent, /^Your browser blocked copying\. Press Ctrl\+C \(or Cmd\+C\) now: the text below is selected\./);
 });
 
 // spec: FR-18; cat: data
@@ -427,5 +427,52 @@ test('when the clipboard is refused, the change request is shown in a box to cop
   assert.match(page.$('reqbox').value, /^VisualTDD change request: "Colours", generated \d{4}-\d\d-\d\dT/);
   assert.match(page.$('reqbox').value, /\nSet cat to input on this test\. /);
   assert.match(page.$('reqbox').value, /\n- a\.test\.js:2  "x"\n    now: cat: logic; tier: all   \(picked from \. · tests · Functional \/ Logic\)\n/);
-  assert.equal(page.$('pickstatus').textContent, 'Copy the text below and paste it to Claude.');
+  assert.equal(page.$('pickstatus').textContent, 'Your browser blocked copying. Press Ctrl+C (or Cmd+C) now: the text below is selected. Then paste it to Claude.');
+});
+
+// ---------- copying when the browser refuses navigator.clipboard ----------
+// Found by hand: in embedded browsers and some file:// pages, navigator.clipboard.writeText is refused with
+// "Write permission denied" even on a click, so nothing reached the clipboard. execCommand('copy') on the
+// selected text box still works there, so it goes first.
+
+// spec: FR-23; cat: err
+test('when navigator.clipboard is refused, Copy change request still copies, through the selected text box', async () => {
+  const { page } = defaultPage({ clipboard: 'denied', execCopy: true });
+  segments(page)[0].dispatch('click');
+  page.$('newcat').value = 'input';
+  page.$('copyreq').dispatch('click');
+  await new Promise((r) => setTimeout(r, 0));
+  assert.deepEqual(page.copiedBy, ['execCommand']);
+  assert.match(page.copied[0], /^VisualTDD change request: "Colours"/);
+  assert.match(page.copied[0], /\n- a\.test\.js:2  "x"\n/);
+  assert.equal(page.$('pickstatus').textContent, 'Copied. Paste it to Claude in chat.');
+  assert.equal(page.$('reqbox').hidden, true, 'no box to copy by hand');
+});
+
+// spec: FR-18; cat: err
+test('when navigator.clipboard is refused, Copy as config still copies, through the selected text box', async () => {
+  const { m, page } = defaultPage({ clipboard: 'denied', execCopy: true });
+  page.$('copy').dispatch('click');
+  await new Promise((r) => setTimeout(r, 0));
+  assert.deepEqual(page.copiedBy, ['execCommand']);
+  assert.deepEqual(JSON.parse(page.copied[0]).categories.map((c) => c.k), m.categories.map((c) => c.k));
+  assert.match(page.$('status').textContent, /^Copied\./);
+  assert.equal(page.$('copybox').hidden, true);
+});
+
+// spec: FR-23; cat: logic
+test('a copy is made once: the text-box copy goes first, and navigator.clipboard is only tried when it fails', async () => {
+  const both = defaultPage({ clipboard: 'ok', execCopy: true }).page;
+  segments(both)[0].dispatch('click');
+  both.$('newcat').value = 'input';
+  both.$('copyreq').dispatch('click');
+  await new Promise((r) => setTimeout(r, 0));
+  assert.deepEqual(both.copiedBy, ['execCommand']);
+  const apiOnly = defaultPage({ clipboard: 'ok', execCopy: false }).page;
+  segments(apiOnly)[0].dispatch('click');
+  apiOnly.$('newcat').value = 'input';
+  apiOnly.$('copyreq').dispatch('click');
+  await new Promise((r) => setTimeout(r, 0));
+  assert.deepEqual(apiOnly.copiedBy, ['clipboard']);
+  assert.equal(apiOnly.$('pickstatus').textContent, 'Copied. Paste it to Claude in chat.');
 });

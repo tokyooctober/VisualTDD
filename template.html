@@ -282,18 +282,26 @@ document.getElementById('reset').addEventListener('click', function () {
   applyColors(); document.getElementById('copybox').hidden = true;
   document.getElementById('status').textContent = 'Colours reset to the config.';
 });
+/* Copies text to the clipboard. The selected text box with execCommand('copy') goes first: it works on file:// pages
+   and in embedded browsers where navigator.clipboard is refused ("Write permission denied"). Then navigator.clipboard,
+   and last the text box left open, selected, to copy by hand. */
+function copyText(text, box, status, copiedMsg, manualMsg) {
+  box.value = text;
+  box.hidden = false; box.focus(); box.select();
+  var ok = false;
+  try { ok = !!(document.execCommand && document.execCommand('copy')); } catch (e) { ok = false; }
+  function copied() { box.hidden = true; status.textContent = copiedMsg; }
+  function manual() { box.hidden = false; box.focus(); box.select(); status.textContent = manualMsg; }
+  if (ok) { copied(); return; }
+  try { navigator.clipboard.writeText(text).then(copied, manual); } catch (e) { manual(); }
+}
 document.getElementById('copy').addEventListener('click', function () {
   var json = JSON.stringify({ categories: CATS.map(function (c) {
     return { k: c.k, name: c.name, what: c.what, color: colorOf(c, false), colorDark: colorOf(c, true) };
   }) }, null, 2);
-  var box = document.getElementById('copybox'), status = document.getElementById('status');
-  box.value = json;
-  function showBox() { box.hidden = false; box.focus(); box.select(); status.textContent = 'Copy the text below into visualtdd.config.json.'; }
-  try {
-    navigator.clipboard.writeText(json).then(function () {
-      box.hidden = true; status.textContent = 'Copied. Paste it into visualtdd.config.json and rebuild to keep these colours.';
-    }, showBox);
-  } catch (e) { showBox(); }
+  copyText(json, document.getElementById('copybox'), document.getElementById('status'),
+    'Copied. Paste it into visualtdd.config.json and rebuild to keep these colours.',
+    'Your browser blocked copying. Press Ctrl+C (or Cmd+C) now: the text below is selected. Paste it into visualtdd.config.json.');
 });
 if (window.matchMedia) {
   var mq = matchMedia('(prefers-color-scheme: dark)');
@@ -394,13 +402,9 @@ function changeRequest() {
 document.getElementById('copyreq').addEventListener('click', function () {
   var req = changeRequest(), box = document.getElementById('reqbox'), status = document.getElementById('pickstatus');
   if (req.error) { status.textContent = req.error; box.hidden = true; return; }
-  box.value = req.text;
-  function showBox() { box.hidden = false; box.focus(); box.select(); status.textContent = 'Copy the text below and paste it to Claude.'; }
-  try {
-    navigator.clipboard.writeText(req.text).then(function () {
-      box.hidden = true; status.textContent = 'Copied. Paste it to Claude in chat.';
-    }, showBox);
-  } catch (e) { showBox(); }
+  copyText(req.text, box, status,
+    'Copied. Paste it to Claude in chat.',
+    'Your browser blocked copying. Press Ctrl+C (or Cmd+C) now: the text below is selected. Then paste it to Claude.');
 });
 document.getElementById('clearpick').addEventListener('click', function () {
   picked = []; document.getElementById('reqbox').hidden = true; document.getElementById('pickstatus').textContent = ''; drawPicks();
