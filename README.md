@@ -107,3 +107,7 @@ npm test
 ```
 
 The suite runs the tool on the fixture projects in `test/fixtures` (JS, Kotlin, Python) and checks counts, names, tiers, spec reading, warnings, `--check`, `--init` and the colour checks. `examples/hiroapp.config.json` is the configuration of the project TDDmap was extracted from.
+
+## Claude skill
+
+`skill/SKILL.md` is a Claude skill. It tags a project's untagged tests, proposes the tags for review before writing anything, and builds the dashboard. To use it, copy the `skill/` folder into the project as `.claude/skills/tddmap/`, or into `~/.claude/skills/tddmap/` to have it in every project.
