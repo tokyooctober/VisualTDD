@@ -5,15 +5,15 @@ import { mkdtempSync, writeFileSync, readFileSync, existsSync, cpSync, rmSync } 
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { loadConfig, buildModel, colorWarnings, makeColorLib, DEFAULT_CATEGORIES, initConfig } from '../tddmap.mjs';
+import { loadConfig, buildModel, colorWarnings, makeColorLib, DEFAULT_CATEGORIES, initConfig } from '../visualtdd.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const CLI = join(HERE, '..', 'tddmap.mjs');
+const CLI = join(HERE, '..', 'visualtdd.mjs');
 const fixture = (name) => join(HERE, 'fixtures', name);
 
 function model(name, overrides = {}) {
   const dir = fixture(name);
-  const raw = { ...JSON.parse(readFileSync(join(dir, 'tddmap.config.json'), 'utf8')), ...overrides };
+  const raw = { ...JSON.parse(readFileSync(join(dir, 'visualtdd.config.json'), 'utf8')), ...overrides };
   const { cfg, problems } = loadConfig(raw, dir);
   assert.deepEqual(problems, []);
   return buildModel(cfg);
@@ -23,7 +23,7 @@ const run = (args, cwd) => spawnSync(process.execPath, [CLI, ...args], { cwd, en
 
 /** Copies a fixture to a temp dir so a run can write its page there. */
 function scratch(name) {
-  const dir = mkdtempSync(join(tmpdir(), 'tddmap-'));
+  const dir = mkdtempSync(join(tmpdir(), 'visualtdd-'));
   cpSync(fixture(name), dir, { recursive: true });
   return dir;
 }
@@ -66,7 +66,7 @@ test('unknown category, unknown tier and unknown spec id are each reported', () 
     '// spec: LOGIN; cat: ui; tier: cloud', "test('b', () => {});",
     '// spec: NOPE; cat: ui', "test('c', () => {});",
   ].join('\n'));
-  const { cfg } = loadConfig(JSON.parse(readFileSync(join(dir, 'tddmap.config.json'), 'utf8')), dir);
+  const { cfg } = loadConfig(JSON.parse(readFileSync(join(dir, 'visualtdd.config.json'), 'utf8')), dir);
   const { problems } = buildModel(cfg);
   assert.ok(problems.some((p) => /unknown cat "speed"/.test(p)));
   assert.ok(problems.some((p) => /unknown tier "cloud"/.test(p)));
@@ -141,10 +141,10 @@ test('the page carries the model, the title and the colour checks, and has no pl
 // spec: CLI; cat: data
 test('--init detects the languages and test folders and never overwrites a config', () => {
   const dir = scratch('python');
-  rmSync(join(dir, 'tddmap.config.json'));
+  rmSync(join(dir, 'visualtdd.config.json'));
   const first = run(['--init'], dir);
   assert.equal(first.status, 0, first.stderr);
-  const cfg = JSON.parse(readFileSync(join(dir, 'tddmap.config.json'), 'utf8'));
+  const cfg = JSON.parse(readFileSync(join(dir, 'visualtdd.config.json'), 'utf8'));
   assert.deepEqual(cfg.languages, ['python']);
   assert.deepEqual(cfg.testRoots, ['tests']);
   assert.equal(run(['--init'], dir).status, 1);

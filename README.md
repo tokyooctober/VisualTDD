@@ -1,20 +1,20 @@
-# TDDmap
+# VisualTDD
 
-TDDmap shows how many tests cover each spec (requirement) in a project. It breaks each spec down by the kind of test (category) and by the layer of code under test (tier). Each test carries a one-line comment tag. TDDmap reads the tags, checks them, and writes a single HTML dashboard that you commit with the project.
+VisualTDD shows how many tests cover each spec (requirement) in a project. It breaks each spec down by the kind of test (category) and by the layer of code under test (tier). Each test carries a one-line comment tag. VisualTDD reads the tags, checks them, and writes a single HTML dashboard that you commit with the project.
 
 - Works with tests in JavaScript/TypeScript, Kotlin, Java, Python, Swift and Go, and other languages by configuration.
-- One file, `tddmap.mjs`, plus `template.html`. It needs only Node 22 and no packages.
+- One file, `visualtdd.mjs`, plus `template.html`. It needs only Node 22 and no packages.
 - Every test is drawn the same width, so two specs with the same number of tests have bars of the same length.
 
 ## Quick start
 
 ```sh
-# copy tddmap.mjs and template.html into the project (for example into tools/tddmap/), then:
-node tools/tddmap/tddmap.mjs --init      # writes tddmap.config.json from the test files it finds
-node tools/tddmap/tddmap.mjs             # writes docs/test-map.html and prints a summary
+# copy visualtdd.mjs and template.html into the project (for example into tools/visualtdd/), then:
+node tools/visualtdd/visualtdd.mjs --init      # writes visualtdd.config.json from the test files it finds
+node tools/visualtdd/visualtdd.mjs             # writes docs/test-map.html and prints a summary
 ```
 
-Run it from the folder that holds `tddmap.config.json`, or pass `--config path/to/tddmap.config.json`.
+Run it from the folder that holds `visualtdd.config.json`, or pass `--config path/to/visualtdd.config.json`.
 
 ## Tagging a test
 
@@ -64,14 +64,14 @@ These are `ui`, `domain` and `data`, the classic three tiers. The tier is read f
 
 | Command | What it does |
 |---|---|
-| `node tddmap.mjs` | Writes the dashboard and prints a summary table. A missing or bad tag prints a `WARNING`, that test is left out of the page, and the exit code is 0. |
-| `node tddmap.mjs --check` | Checks the tags only. Exits 1 if any test is untagged or uses an unknown spec, category or tier. Use it in CI or a pre-commit hook. |
-| `node tddmap.mjs --init` | Writes a starter `tddmap.config.json`. It never overwrites an existing one. |
-| `node tddmap.mjs --json` | Prints the model (rows, tests, categories, tiers) as JSON. |
+| `node visualtdd.mjs` | Writes the dashboard and prints a summary table. A missing or bad tag prints a `WARNING`, that test is left out of the page, and the exit code is 0. |
+| `node visualtdd.mjs --check` | Checks the tags only. Exits 1 if any test is untagged or uses an unknown spec, category or tier. Use it in CI or a pre-commit hook. |
+| `node visualtdd.mjs --init` | Writes a starter `visualtdd.config.json`. It never overwrites an existing one. |
+| `node visualtdd.mjs --json` | Prints the model (rows, tests, categories, tiers) as JSON. |
 
-## Config (`tddmap.config.json`)
+## Config (`visualtdd.config.json`)
 
-All paths are relative to the project root, which is the config file's folder unless `root` says otherwise. See `tddmap.config.example.json` for a full example.
+All paths are relative to the project root, which is the config file's folder unless `root` says otherwise. See `visualtdd.config.example.json` for a full example.
 
 | Key | Default | Meaning |
 |---|---|---|
@@ -97,8 +97,8 @@ Specs with no tests are still listed, with a dashed "no tests yet" bar, so gaps 
 
 ## Colours
 
-- **In the config:** set `color` (light theme) and `colorDark` (dark theme) per category. The text printed on a bar is picked automatically for contrast, or set it with `text` and `textDark`. The default colours were chosen so that neighbouring categories stay distinguishable for colour-blind readers. When you change them, TDDmap checks each neighbouring pair and prints a warning if two have become too close. The warning never fails the build.
-- **In the dashboard:** click a category's swatch in the legend to pick a new colour. The bars change at once, for the theme you are viewing. The choice is saved in that browser only. The same colour-blind check runs as you pick and flags clashing categories. **Copy as config** copies the current colours as JSON. Paste it into `tddmap.config.json` and rebuild to make them permanent for everyone. **Reset colors** goes back to the config.
+- **In the config:** set `color` (light theme) and `colorDark` (dark theme) per category. The text printed on a bar is picked automatically for contrast, or set it with `text` and `textDark`. The default colours were chosen so that neighbouring categories stay distinguishable for colour-blind readers. When you change them, VisualTDD checks each neighbouring pair and prints a warning if two have become too close. The warning never fails the build.
+- **In the dashboard:** click a category's swatch in the legend to pick a new colour. The bars change at once, for the theme you are viewing. The choice is saved in that browser only. The same colour-blind check runs as you pick and flags clashing categories. **Copy as config** copies the current colours as JSON. Paste it into `visualtdd.config.json` and rebuild to make them permanent for everyone. **Reset colors** goes back to the config.
 
 ## Tests
 
@@ -106,8 +106,8 @@ Specs with no tests are still listed, with a dashed "no tests yet" bar, so gaps 
 npm test
 ```
 
-The suite runs the tool on the fixture projects in `test/fixtures` (JS, Kotlin, Python) and checks counts, names, tiers, spec reading, warnings, `--check`, `--init` and the colour checks. `examples/hiroapp.config.json` is the configuration of the project TDDmap was extracted from.
+The suite runs the tool on the fixture projects in `test/fixtures` (JS, Kotlin, Python) and checks counts, names, tiers, spec reading, warnings, `--check`, `--init` and the colour checks. `examples/hiroapp.config.json` is the configuration of the project VisualTDD was extracted from.
 
 ## Claude skill
 
-`skill/SKILL.md` is a Claude skill. It tags a project's untagged tests, proposes the tags for review before writing anything, and builds the dashboard. To use it, copy the `skill/` folder into the project as `.claude/skills/tddmap/`, or into `~/.claude/skills/tddmap/` to have it in every project.
+`skill/SKILL.md` is a Claude skill. It tags a project's untagged tests, proposes the tags for review before writing anything, and builds the dashboard. To use it, copy the `skill/` folder into the project as `.claude/skills/visualtdd/`, or into `~/.claude/skills/visualtdd/` to have it in every project.

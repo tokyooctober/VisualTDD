@@ -1,12 +1,12 @@
 #!/usr/bin/env node
-// TDDmap: count the tests that cover each spec, by test category and by tier, and build an HTML dashboard.
+// VisualTDD: count the tests that cover each spec, by test category and by tier, and build an HTML dashboard.
 //
-//   node tddmap.mjs                write the dashboard and print a summary; a bad or missing tag prints a
+//   node visualtdd.mjs                write the dashboard and print a summary; a bad or missing tag prints a
 //                                  WARNING and that test is left out (exit 0)
-//   node tddmap.mjs --check        validate the tags only (exit 1 on any problem)
-//   node tddmap.mjs --init         write a starter tddmap.config.json for the current directory
-//   node tddmap.mjs --json         print the model as JSON instead of writing the page
-//   --config <file>                use another config file (default: ./tddmap.config.json)
+//   node visualtdd.mjs --check        validate the tags only (exit 1 on any problem)
+//   node visualtdd.mjs --init         write a starter visualtdd.config.json for the current directory
+//   node visualtdd.mjs --json         print the model as JSON instead of writing the page
+//   --config <file>                use another config file (default: ./visualtdd.config.json)
 //
 // Every test carries one comment line directly above it (above its annotations or decorators):
 //
@@ -319,7 +319,7 @@ export function render(model) {
   const json = JSON.stringify(model).replaceAll('<', '\\u003c');
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
   return template
-    .replace('<title>TDDmap</title>', `<title>${esc(model.title)}</title>`)
+    .replace('<title>VisualTDD</title>', `<title>${esc(model.title)}</title>`)
     .replace('/*__COLOR_LIB__*/', `var makeColorLib = ${makeColorLib.toString()};`)
     .replace('/*__DATA__*/null', json);
 }
@@ -352,7 +352,7 @@ export function initConfig(root) {
 
 function main(argv) {
   const arg = (name) => { const i = argv.indexOf(name); return i >= 0 ? argv[i + 1] : undefined; };
-  const configFile = resolve(arg('--config') ?? 'tddmap.config.json');
+  const configFile = resolve(arg('--config') ?? 'visualtdd.config.json');
   const root = dirname(configFile);
 
   if (argv.includes('--init')) {

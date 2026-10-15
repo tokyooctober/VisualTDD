@@ -1,11 +1,11 @@
 ---
-name: tddmap
-description: Tag a project's tests with the spec, category and tier they cover, and build the TDDmap dashboard of test counts per spec. Use when the user asks to tag tests, map tests to specs or requirements, show test coverage by spec, category or tier, set up TDDmap, or rebuild the test map.
+name: visualtdd
+description: Tag a project's tests with the spec, category and tier they cover, and build the VisualTDD dashboard of test counts per spec. Use when the user asks to tag tests, map tests to specs or requirements, show test coverage by spec, category or tier, set up VisualTDD, or rebuild the test map.
 ---
 
-# TDDmap
+# VisualTDD
 
-TDDmap counts the tests that cover each spec and draws them on one HTML page, split by test **category** (colour) and **tier** (column). Each test carries one comment tag directly above it, above any annotations or decorators:
+VisualTDD counts the tests that cover each spec and draws them on one HTML page, split by test **category** (colour) and **tier** (column). Each test carries one comment tag directly above it, above any annotations or decorators:
 
 ```
 // spec: FR-3; cat: logic                 (JS, Kotlin, Java, Swift, Go)
@@ -13,15 +13,15 @@ TDDmap counts the tests that cover each spec and draws them on one HTML page, sp
 // spec: NFR-3, FR-12; cat: perf; tier: tooling
 ```
 
-The tool is two files, `tddmap.mjs` and `template.html`, from https://github.com/tokyooctober/TDDmap. It needs Node 22 and nothing else. The README there is the reference for the config and the commands.
+The tool is two files, `visualtdd.mjs` and `template.html`, from https://github.com/tokyooctober/VisualTDD. It needs Node 22 and nothing else. The README there is the reference for the config and the commands.
 
 ## Workflow
 
-1. **Install, if the project does not have it.** Copy `tddmap.mjs` and `template.html` into `tools/tddmap/` (or wherever the user prefers). Check with the user before adding files to their repo.
-2. **Config.** If there is no `tddmap.config.json`, run `node tools/tddmap/tddmap.mjs --init`, then review what it wrote with the user:
+1. **Install, if the project does not have it.** Copy `visualtdd.mjs` and `template.html` into `tools/visualtdd/` (or wherever the user prefers). Check with the user before adding files to their repo.
+2. **Config.** If there is no `visualtdd.config.json`, run `node tools/visualtdd/visualtdd.mjs --init`, then review what it wrote with the user:
    - `specs`: ask where the project's requirements live. Use a Markdown spec with ids (`source: "markdown"` plus `idPattern`), a list in the config, or `none`. Do not invent spec ids.
    - `tiers` and `tierFromPath`: match the project's real layers and folder names. Add tiers such as `proxy` or `tooling` only when the code has them.
-3. **Find the untagged tests.** Run `node tools/tddmap/tddmap.mjs --check`. Every untagged test is listed with its file and line.
+3. **Find the untagged tests.** Run `node tools/visualtdd/visualtdd.mjs --check`. Every untagged test is listed with its file and line.
 4. **Propose tags. Do not write them yet.** Read each untagged test, including its body and what it asserts, and propose `spec`, `cat` and, where the path does not decide it, `tier`, using the rules below. Show the proposals as a table (file:line, test name, spec, cat, tier, one-line reason) and flag the uncertain ones. Wait for the user to approve or correct them.
 5. **Write the approved tags.** Insert one tag line above each test (above annotations or decorators), matching the file's indentation. Change nothing else in the test files.
 6. **Check and build.** Run `--check`, which must exit 0, then run the tool without flags to write the dashboard. Run the project's own tests to confirm nothing broke. Report the counts from the summary: how many specs have no tests, which tiers are empty, and anything surprising.

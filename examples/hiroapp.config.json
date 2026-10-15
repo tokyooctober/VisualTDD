@@ -1,7 +1,7 @@
 {
   "root": "../../HiroApp",
   "title": "Hiro-Kids test map",
-  "output": "../TDDmap/examples/hiroapp-test-map.html",
+  "output": "../VisualTDD/examples/hiroapp-test-map.html",
   "testRoots": [
     "proxy/test",
     "shared/src"
