@@ -126,6 +126,7 @@ export function loadConfig(raw, root) {
   const cfg = {
     root: resolve(root, raw.root ?? '.'),
     title: raw.title ?? 'Test map',
+    theme: raw.theme ?? 'auto',
     output: raw.output ?? 'docs/test-map.html',
     testRoots: raw.testRoots ?? ['.'],
     tierFromPath: (raw.tierFromPath ?? (raw.tiers ? [] : DEFAULT_TIER_RULES)).map((r) => ({ re: new RegExp(r.pattern), tier: r.tier })),
@@ -161,6 +162,7 @@ export function loadConfig(raw, root) {
 
   cfg.tiers = (raw.tiers ?? DEFAULT_TIERS).map((t) => (typeof t === 'string' ? { k: t, name: t[0].toUpperCase() + t.slice(1), what: '' } : { what: '', ...t, name: t.name ?? t.k }));
   for (const r of cfg.tierFromPath) if (!cfg.tiers.some((t) => t.k === r.tier)) problems.push(`config: tierFromPath names tier "${r.tier}", which is not in "tiers"`);
+  if (!['auto', 'light', 'dark'].includes(cfg.theme)) problems.push(`config: theme must be "auto", "light" or "dark"`);
   if (!['markdown', 'list', 'none'].includes(cfg.specs.source)) problems.push(`config: specs.source must be "markdown", "list" or "none"`);
   return { cfg, problems };
 }
@@ -293,7 +295,7 @@ export function buildModel(cfg) {
     for (const [id, name] of Object.entries(extras)) if (used.has(id)) rows.push({ id, name, group: cfg.extraSpecs.group ?? 'Other', kind: 'extra', tests: [] });
     for (const t of tests) for (const s of t.specs) rows.find((r) => r.id === s)?.tests.push({ name: t.name, file: t.file, line: t.line, tier: t.tier, cat: t.cat });
   }
-  const model = { title: cfg.title, categories: cfg.categories, tiers: cfg.tiers, rows, uniqueTests: tests.length, specMode: cfg.specs.source };
+  const model = { title: cfg.title, theme: cfg.theme, categories: cfg.categories, tiers: cfg.tiers, rows, uniqueTests: tests.length, specMode: cfg.specs.source };
   return { model, problems };
 }
 
@@ -320,6 +322,8 @@ export function render(model) {
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
   return template
     .replace('<title>VisualTDD</title>', `<title>${esc(model.title)}</title>`)
+    // A fixed theme is set on <html> so the page never flashes the other theme while it loads.
+    .replace('<html lang="en">', model.theme === 'light' || model.theme === 'dark' ? `<html lang="en" data-theme="${model.theme}">` : '<html lang="en">')
     .replace('/*__COLOR_LIB__*/', `var makeColorLib = ${makeColorLib.toString()};`)
     .replace('/*__DATA__*/null', json);
 }

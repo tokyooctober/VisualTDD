@@ -42,6 +42,10 @@ p { margin: 0; color: var(--ink2); max-width: 68ch; }
 .tools button { font: inherit; font-size: 12px; padding: 5px 12px; border-radius: 7px; border: 1px solid var(--axis); background: transparent; color: var(--ink); cursor: pointer; }
 .tools button:hover { background: var(--chip); }
 .tools button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.top { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px; }
+.theme { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink2); }
+.theme select { font: inherit; font-size: 12px; padding: 4px 8px; border-radius: 7px; border: 1px solid var(--axis); background: var(--surface); color: var(--ink); cursor: pointer; }
+.theme select:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 #clash { font-size: 12px; color: var(--warn); background: var(--warn-bg); border-radius: 8px; padding: 8px 10px; }
 #copybox { width: 100%; min-height: 120px; font: 12px ui-monospace, Menlo, Consolas, monospace; color: var(--ink); background: var(--bg); border: 1px solid var(--axis); border-radius: 8px; padding: 8px; }
 .scale { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--ink2); }
@@ -78,7 +82,16 @@ code { font-size: 12px; background: var(--chip); padding: 1px 5px; border-radius
 <body>
 <div class="wrap">
   <header style="display:flex;flex-direction:column;gap:8px">
-    <h1 id="title"></h1>
+    <div class="top">
+      <h1 id="title"></h1>
+      <label class="theme">Theme
+        <select id="theme" aria-label="Page theme">
+          <option value="auto">Auto (system)</option>
+          <option value="light">Light</option>
+          <option value="dark">Dark</option>
+        </select>
+      </label>
+    </div>
     <p>How many tests cover each spec. Every test is the same width on this page, so two specs with the same number of tests have bars of exactly the same length. The first column is the whole spec; the tier columns show where its tests live.</p>
   </header>
 
@@ -212,6 +225,23 @@ if (window.matchMedia) {
   var mq = matchMedia('(prefers-color-scheme: dark)');
   if (mq.addEventListener) mq.addEventListener('change', applyColors);
 }
+/* ---- theme: the config's choice, overridden per browser; auto follows the system setting ---- */
+var THEME_STORE = 'visualtdd-theme:' + location.pathname + ':' + DATA.title;
+function setTheme(t) {
+  if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+  else document.documentElement.removeAttribute('data-theme');
+}
+var themeSel = document.getElementById('theme'), savedTheme = null;
+try { savedTheme = localStorage.getItem(THEME_STORE); } catch (e) {}
+themeSel.value = savedTheme || DATA.theme || 'auto';
+setTheme(themeSel.value);
+themeSel.addEventListener('change', function (e) {
+  setTheme(e.target.value);
+  try {
+    if (e.target.value === (DATA.theme || 'auto')) localStorage.removeItem(THEME_STORE);
+    else localStorage.setItem(THEME_STORE, e.target.value);
+  } catch (err) { /* storage blocked: the choice lasts until reload */ }
+});
 new MutationObserver(applyColors).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 document.getElementById('scale').innerHTML = '<i style="width:' + UNIT + 'px"></i> 1 test, the same width in every bar';
 

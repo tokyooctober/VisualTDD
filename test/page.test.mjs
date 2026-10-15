@@ -1,8 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import vm from 'node:vm';
 import { readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
-import { render } from '../visualtdd.mjs';
+import { render, loadConfig } from '../visualtdd.mjs';
 import { REPO, run, scratch, project, build } from './helpers.mjs';
 
 const dataOf = (html) => JSON.parse(html.match(/var DATA = (.*);\n/)[1]);
@@ -62,4 +63,276 @@ test('every bar segment is n tests times one fixed unit wide, so equal counts dr
   assert.match(template, /g\.style\.width = \(n \* UNIT\) \+ 'px'/);
   assert.equal((template.match(/style\.width = /g) || []).length, 2, 'segments and the shared track are the only sized elements');
   assert.match(template, /track\.style\.width = trackW \+ 'px'/);
+});
+
+// ---------- the page's script, run in node:vm against a small DOM stub ----------
+
+/** Just enough DOM for template.html's script: elements found by id, and innerHTML that registers the ids it contains. */
+function openPage(html, { storage = new Map(), dark = false, clipboard = 'ok' } = {}) {
+  const ids = new Map(), observers = [], copied = [];
+  class Element {
+    constructor(tag, attrs = '') {
+      this.tagName = tag.toUpperCase(); this.children = []; this.listeners = {}; this.attrs = {};
+      this.style = { setProperty(k, v) { this[k] = v; } };
+      this.className = ''; this.textContent = ''; this.value = ''; this.hidden = /\shidden[\s>/]|\shidden$/.test(attrs);
+      this.html = '';
+    }
+    set innerHTML(s) { this.html = String(s); this.children = parse(this.html); }
+    get innerHTML() { return this.html; }
+    appendChild(c) { this.children.push(c); return c; }
+    querySelector(tag) { return this.children.find((c) => c.tagName === tag.toUpperCase()) ?? null; }
+    addEventListener(type, fn) { (this.listeners[type] ??= []).push(fn); }
+    dispatch(type) { for (const fn of this.listeners[type] ?? []) fn({ target: this }); }
+    setAttribute(k, v) { this.attrs[k] = String(v); for (const fn of observers) fn([]); }
+    getAttribute(k) { return this.attrs[k] ?? null; }
+    removeAttribute(k) { delete this.attrs[k]; for (const fn of observers) fn([]); }
+    focus() {} select() {}
+  }
+  function parse(s) {
+    return [...s.matchAll(/<(\w+)([^>]*)>/g)].map(([, tag, attrs]) => {
+      const e = new Element(tag, attrs), id = attrs.match(/\sid="([^"]*)"/)?.[1];
+      if (id != null) { e.id = id; ids.set(id, e); }
+      return e;
+    });
+  }
+  parse(html.replace(/<script>[\s\S]*<\/script>/, ''));
+  const media = { matches: dark, addEventListener() {} };
+  const document = {
+    documentElement: new Element('html'),
+    getElementById: (id) => ids.get(id) ?? null,
+    createElement: (tag) => new Element(tag),
+  };
+  const ctx = {
+    document, location: { pathname: '/docs/test-map.html' }, innerWidth: 1200,
+    matchMedia: () => media,
+    MutationObserver: class { constructor(fn) { this.fn = fn; } observe() { observers.push(this.fn); } },
+    localStorage: { getItem: (k) => storage.get(k) ?? null, setItem: (k, v) => storage.set(k, String(v)), removeItem: (k) => storage.delete(k) },
+    navigator: { clipboard: { writeText: (t) => (clipboard === 'ok' ? (copied.push(t), Promise.resolve()) : Promise.reject(new Error('denied'))) } },
+  };
+  ctx.window = ctx;
+  vm.runInNewContext(html.match(/<script>([\s\S]*)<\/script>/)[1], ctx);
+  const $ = (id) => ids.get(id);
+  return {
+    $, storage, copied,
+    key: 'visualtdd-colors:/docs/test-map.html:' + dataOf(html).title,
+    pick(k, hex) { $(`pick-${k}`).value = hex; $(`pick-${k}`).dispatch('input'); },
+    theme(t) { document.documentElement.setAttribute('data-theme', t); },
+    themeAttr: () => document.documentElement.getAttribute('data-theme'),
+    chooseTheme(t) { $('theme').value = t; $('theme').dispatch('change'); },
+    css: () => $('cat-colors').textContent,
+  };
+}
+const flush = () => new Promise((r) => setTimeout(r, 0));
+
+/** A page with the default categories, built from a one-test project. */
+function defaultPage(opts) {
+  const dir = project({ 'a.test.js': ['// cat: logic', "test('x', () => {});"] });
+  const { model: m } = build(dir, { languages: ['js'], tiers: ['all'], title: 'Colours' });
+  rmSync(dir, { recursive: true });
+  return { m, page: openPage(render(m), opts), cat: (k) => m.categories.find((c) => c.k === k) };
+}
+const lightBlock = (css) => css.match(/^:root\{([^}]*)\}/)[1];
+const darkBlock = (css) => css.match(/:root\[data-theme="dark"\]\{([^}]*)\}/)[1];
+
+// spec: FR-18; cat: ui
+test('a legend swatch changes its category colour for the light theme only, and the bars use it', () => {
+  const { page, cat } = defaultPage();
+  assert.equal(page.$('pick-ui').value, cat('ui').color, 'the swatch starts at the config colour');
+  page.pick('ui', '#123456');
+  assert.match(lightBlock(page.css()), /--c-ui:#123456;--on-ui:#ffffff;/);
+  assert.match(darkBlock(page.css()), new RegExp(`--c-ui:${cat('ui').colorDark};`), 'the dark theme keeps its colour');
+});
+
+// spec: FR-18; cat: ui
+test('in the dark theme the swatch shows and changes the dark colour, leaving the light one alone', () => {
+  const { page, cat } = defaultPage();
+  page.theme('dark');
+  assert.equal(page.$('pick-ui').value, cat('ui').colorDark);
+  page.pick('ui', '#ddeeff');
+  assert.match(darkBlock(page.css()), /--c-ui:#ddeeff;--on-ui:#0b0b0b;/);
+  assert.match(lightBlock(page.css()), new RegExp(`--c-ui:${cat('ui').color};`));
+  page.theme('light');
+  assert.equal(page.$('pick-ui').value, cat('ui').color, 'switching back shows the light colour again');
+});
+
+// spec: FR-18; cat: ui
+test('with no theme chosen on the page, the swatch follows the system dark setting', () => {
+  const { page, cat } = defaultPage({ dark: true });
+  assert.equal(page.$('pick-ui').value, cat('ui').colorDark);
+  page.pick('ui', '#ddeeff');
+  assert.deepEqual(JSON.parse(page.storage.get(page.key)), { ui: { colorDark: '#ddeeff' } });
+});
+
+// spec: FR-18; cat: data
+test('a changed colour is saved in localStorage and comes back when the page is opened again', () => {
+  const { m, page } = defaultPage();
+  page.pick('sec', '#abcdef');
+  assert.deepEqual(JSON.parse(page.storage.get(page.key)), { sec: { color: '#abcdef' } });
+  const again = openPage(render(m), { storage: page.storage });
+  assert.equal(again.$('pick-sec').value, '#abcdef');
+  assert.match(lightBlock(again.css()), /--c-sec:#abcdef;/);
+});
+
+// spec: FR-18; cat: err
+test('a broken saved value or blocked storage falls back to the config colours without failing', () => {
+  const { m, page: first, cat } = defaultPage();
+  const broken = openPage(render(m), { storage: new Map([[first.key, '{not json']]) });
+  assert.equal(broken.$('pick-ui').value, cat('ui').color);
+  const blocked = new Map();
+  blocked.set = () => { throw new Error('QuotaExceededError'); };
+  const page = openPage(render(m), { storage: blocked });
+  page.pick('ui', '#123456');
+  assert.match(lightBlock(page.css()), /--c-ui:#123456;/, 'the change still applies until reload');
+});
+
+// spec: FR-18, NFR-2; cat: ui
+test('the clash warning appears live when two neighbouring colours get too close, and clears when fixed', () => {
+  const { m, page } = defaultPage();
+  const [first, second, third] = m.categories;
+  assert.equal(page.$('clash').hidden, true, 'the default colours raise no warning');
+  page.pick(second.k, first.color);
+  assert.equal(page.$('clash').hidden, false);
+  assert.match(page.$('clash').textContent, new RegExp(`light theme: ${first.name} and ${second.name}`));
+  assert.equal(page.$(`flag-${first.k}`).hidden, false);
+  assert.equal(page.$(`flag-${second.k}`).hidden, false);
+  assert.equal(page.$(`flag-${third.k}`).hidden, true, 'categories not in a clash are not flagged');
+  page.pick(second.k, second.color);
+  assert.equal(page.$('clash').hidden, true);
+  assert.equal(page.$('clash').textContent, '');
+  assert.equal(page.$(`flag-${first.k}`).hidden, true);
+});
+
+// spec: FR-18; cat: ui
+test('the clash warning names the dark theme when the clash is in the dark colours', () => {
+  const { m, page } = defaultPage();
+  const [first, second] = m.categories;
+  page.theme('dark');
+  page.pick(second.k, first.colorDark);
+  assert.match(page.$('clash').textContent, /dark theme/);
+  page.theme('light');
+  assert.equal(page.$('clash').hidden, true, 'the light colours do not clash');
+});
+
+// spec: FR-18; cat: logic
+test('Copy as config copies every category with its light and dark colour, including changes', async () => {
+  const { m, page } = defaultPage();
+  page.pick('ui', '#123456');
+  page.theme('dark');
+  page.pick('logic', '#654321');
+  page.$('copy').dispatch('click');
+  await flush();
+  const expected = m.categories.map(({ k, name, what, color, colorDark }) => ({ k, name, what, color, colorDark }));
+  expected.find((c) => c.k === 'ui').color = '#123456';
+  expected.find((c) => c.k === 'logic').colorDark = '#654321';
+  assert.deepEqual(JSON.parse(page.copied[0]), { categories: expected });
+  assert.match(page.$('status').textContent, /^Copied\./);
+  assert.equal(page.$('copybox').hidden, true);
+});
+
+// spec: FR-18; cat: err
+test('when the clipboard is refused, Copy as config shows the JSON in a box to copy by hand', async () => {
+  const { m, page } = defaultPage({ clipboard: 'denied' });
+  page.$('copy').dispatch('click');
+  await flush();
+  assert.equal(page.$('copybox').hidden, false);
+  assert.deepEqual(JSON.parse(page.$('copybox').value).categories.map((c) => c.k), m.categories.map((c) => c.k));
+  assert.match(page.$('status').textContent, /Copy the text below/);
+});
+
+// spec: FR-18; cat: data
+test('Reset colors clears the saved colours and goes back to the config colours', async () => {
+  const { m, page, cat } = defaultPage({ clipboard: 'denied' });
+  const before = page.css();
+  page.pick('ui', '#123456');
+  page.$('copy').dispatch('click');
+  await flush();
+  page.$('reset').dispatch('click');
+  assert.equal(page.storage.has(page.key), false);
+  assert.equal(page.css(), before);
+  assert.equal(page.$('pick-ui').value, cat('ui').color);
+  assert.equal(page.$('copybox').hidden, true);
+  assert.equal(page.$('status').textContent, 'Colours reset to the config.');
+  assert.equal(openPage(render(m), { storage: page.storage }).$('pick-ui').value, cat('ui').color, 'still reset after reload');
+});
+
+// spec: FR-11; cat: logic
+test('each tier header counts unique tests, so a test citing two specs is counted once', () => {
+  const dir = project({
+    'domain/a.test.js': ['// spec: A, B; cat: logic', "test('both', () => {});", '// spec: A; cat: ui', "test('only A', () => {});"],
+    'data/b.test.js': ['// spec: B; cat: data', "test('data B', () => {});"],
+  });
+  const { model: m } = build(dir, {
+    languages: ['js'], tiers: ['domain', 'data', 'ui'], specs: { source: 'list', items: [{ id: 'A' }, { id: 'B' }] },
+    tierFromPath: [{ pattern: '^domain/', tier: 'domain' }, { pattern: '^data/', tier: 'data' }],
+  });
+  rmSync(dir, { recursive: true });
+  assert.equal(m.rows.flatMap((r) => r.tests).filter((t) => t.tier === 'domain').length, 3, 'the rows hold the shared test twice');
+  const heads = [...openPage(render(m)).$('G').innerHTML.matchAll(/<th[^>]*>([^<]*) · (\d+)<small>/g)].map(([, name, n]) => [name, Number(n)]);
+  assert.deepEqual(heads, m.tiers.map((t, i) => [t.name, [2, 1, 0][i]]));
+});
+
+// ---------- theme ----------
+
+/** A page built with the given config theme (undefined = the default, auto). */
+function themedPage(theme, opts) {
+  const dir = project({ 'a.test.js': ['// cat: logic', "test('x', () => {});"] });
+  const { model: m } = build(dir, { languages: ['js'], tiers: ['all'], title: 'Themes', ...(theme ? { theme } : {}) });
+  rmSync(dir, { recursive: true });
+  const html = render(m);
+  return { m, html, page: openPage(html, opts) };
+}
+
+// spec: FR-19; cat: ui
+test('the config theme is set on <html> for light and dark, and left off for auto', () => {
+  assert.match(themedPage('dark').html, /^<!doctype html>\s*<html lang="en" data-theme="dark">/);
+  assert.match(themedPage('light').html, /<html lang="en" data-theme="light">/);
+  for (const t of [undefined, 'auto']) {
+    const { m, html, page } = themedPage(t);
+    assert.equal(m.theme, 'auto');
+    assert.match(html, /<html lang="en">/);
+    assert.equal(page.themeAttr(), null);
+    assert.equal(page.$('theme').value, 'auto');
+  }
+});
+
+// spec: FR-19; cat: input
+test('a theme other than auto, light or dark is a config problem', () => {
+  const { problems } = loadConfig({ theme: 'sepia' }, REPO);
+  assert.deepEqual(problems, ['config: theme must be "auto", "light" or "dark"']);
+});
+
+// spec: FR-19; cat: ui
+test('the theme picker switches the page between light, dark and auto, and the colours follow', () => {
+  const { m, page } = themedPage('light');
+  assert.equal(page.$('theme').value, 'light');
+  assert.equal(page.themeAttr(), 'light');
+  page.chooseTheme('dark');
+  assert.equal(page.themeAttr(), 'dark');
+  assert.equal(page.$('pick-ui').value, m.categories.find((c) => c.k === 'ui').colorDark, 'the swatches show the dark colours');
+  page.chooseTheme('auto');
+  assert.equal(page.themeAttr(), null, 'auto hands the choice back to the system setting');
+});
+
+// spec: FR-19; cat: data
+test("the viewer's theme choice is saved in this browser and wins over the config; choosing the config's theme clears it", () => {
+  const { m, page } = themedPage('dark');
+  page.chooseTheme('light');
+  const key = 'visualtdd-theme:/docs/test-map.html:Themes';
+  assert.equal(page.storage.get(key), 'light');
+  const again = openPage(render(m), { storage: page.storage });
+  assert.equal(again.themeAttr(), 'light');
+  assert.equal(again.$('theme').value, 'light');
+  again.chooseTheme('dark');
+  assert.equal(page.storage.has(key), false);
+});
+
+// spec: FR-19; cat: err
+test('with storage blocked, the theme picker still switches the page', () => {
+  const blocked = new Map();
+  blocked.get = () => { throw new Error('SecurityError'); };
+  blocked.set = () => { throw new Error('SecurityError'); };
+  const { page } = themedPage('auto', { storage: blocked });
+  assert.equal(page.$('theme').value, 'auto');
+  page.chooseTheme('dark');
+  assert.equal(page.themeAttr(), 'dark');
 });

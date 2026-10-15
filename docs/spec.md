@@ -24,6 +24,7 @@ What VisualTDD must do. The tests in `test/` cite these ids in their tags, and `
 | FR-16 JSON | `--json` prints the model as JSON and writes no page. |
 | FR-17 Config file and errors | `--config` picks another config file, whose folder is the project root. A missing config, unreadable JSON or a missing spec file ends with a one-line message and exit 1, not a stack trace. |
 | FR-18 Edit colours in the page | In the dashboard, a legend swatch changes a category's colour for the current theme, saved in that browser, with a live clash warning. **Copy as config** and **Reset colors** work. |
+| FR-19 Light or dark page | The config's `theme` (`auto`, `light` or `dark`) sets the page theme; `auto` follows the system setting. A picker on the page switches the theme, and the viewer's choice is saved in that browser and wins over the config. |
 
 ## Non-functional requirements
 

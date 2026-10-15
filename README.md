@@ -77,6 +77,7 @@ All paths are relative to the project root, which is the config file's folder un
 |---|---|---|
 | `title` | `Test map` | Page title. |
 | `output` | `docs/test-map.html` | Where the dashboard is written. |
+| `theme` | `auto` | The dashboard's theme: `auto` follows the reader's system setting, `light` or `dark` fixes it. Readers can still switch it with the **Theme** picker on the page, and their choice is saved in their browser. |
 | `root` | `.` | Project root, relative to the config file. |
 | `testRoots` | `["."]` | Folders or files to scan. `node_modules`, `build`, `dist`, `target`, `vendor` and dot-folders are skipped. |
 | `languages` | all presets | Presets by name (`js`, `kotlin`, `java`, `python`, `swift`, `go`), or objects that override a preset (`{ "preset": "js", "files": "\\.test\\.mjs$" }`) or define a new one: `files` (regex on the path), `marker` (regex on the line that starts a test), `nameGroup` (the capture group holding the name), `next` (regex for the name on one of the next lines), `fnName` (turn a function name into words), `comment` (`//` or `#`). |
