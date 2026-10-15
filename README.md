@@ -126,7 +126,15 @@ A normal run prints these as a warning and still writes the page. `--check` trea
 
 ### Default tiers
 
-These are `ui`, `domain` and `data`, the classic three tiers. The tier is read from the path (`/ui/`, `/domain/`, `/data/` and similar names) unless the tag gives one. Add your own tiers, such as `proxy` or `tooling`, in the config.
+These are `ui`, `domain` and `data`, the classic three tiers. Unless the tag gives a tier, it is read from a folder name in the path:
+
+| Tier | Folder names |
+|---|---|
+| `ui` | `ui`, `view`, `views`, `screen`, `screens`, `component`, `components`, `presentation` |
+| `domain` | `domain`, `core`, `model`, `logic`, `usecase`, `usecases` |
+| `data` | `data`, `db`, `repository`, `repositories`, `storage`, `api`, `infra` |
+
+Add your own tiers, such as `proxy` or `tooling`, in the config. Setting `tiers` replaces these rules, so give your own `tierFromPath` too.
 
 ## Command line
 
@@ -137,7 +145,7 @@ node visualtdd.mjs [--check | --init | --json] [--config <file>]
 | Option | What it does | Writes the page | Exit code |
 |---|---|---|---|
 | *(none)* | Reads the tags, prints a summary table, and writes the dashboard, stamped with the time it was generated. A missing or bad tag prints a `WARNING`, and that test is left out. | yes | 0, even with tag problems |
-| `--check` | Checks the tags and prints the summary. Use it in CI or a pre-commit hook. | no | 1 if any test is untagged or uses an unknown spec, category or tier; otherwise 0 |
+| `--check` | Checks the tags. With problems, it lists them; when every tag is valid, it prints the summary. Use it in CI or a pre-commit hook. | no | 1 if any test is untagged or uses an unknown spec, category or tier; otherwise 0 |
 | `--init` | Writes a starter `visualtdd.config.json` from the test files it finds. It never overwrites an existing one. | no | 1 if the config already exists |
 | `--json` | Prints the model (rows, tests, categories, tiers) as JSON. Warnings go to stderr, so stdout stays valid JSON. | no | 0 |
 | `--config <file>` | Uses another config file, whose folder is the project root. Combine it with any option above. | | |
@@ -222,18 +230,18 @@ All paths are relative to the project root, which is the config file's folder un
 | `output` | `docs/test-map.html` | Where the dashboard is written. |
 | `theme` | `auto` | The dashboard's theme: `auto` follows the reader's system setting, `light` or `dark` fixes it. Readers can still switch it with the **Theme** picker on the page, and their choice is saved in their browser. |
 | `root` | `.` | Project root, relative to the config file. |
-| `testRoots` | `["."]` | Folders or files to scan. `node_modules`, `build`, `dist`, `target`, `vendor` and dot-folders are skipped. |
+| `testRoots` | `["."]` | Folders or files to scan. `node_modules`, `build`, `dist`, `out`, `target`, `vendor`, `Pods`, `venv`, `__pycache__`, `DerivedData` and dot-folders are skipped. |
 | `languages` | all presets | Presets by name (`js`, `kotlin`, `java`, `python`, `swift`, `go`), or objects that override a preset (`{ "preset": "js", "files": "\\.test\\.mjs$" }`) or define a new one: `files` (regex on the path), `marker` (regex on the line that starts a test), `nameGroup` (the capture group holding the name), `next` (regex for the name on one of the next lines), `fnName` (turn a function name into words), `comment` (`//` or `#`). |
 | `specs` | `{ "source": "none" }` | Where the spec list comes from (see below). |
 | `extraSpecs` | none | `{ "group": "...", "items": { "ID": "name" } }`: ids tests may cite that are not in the spec list. They are shown only when used. |
 | `categories` | the 8 above | Keys, or objects `{ k, name, what, color, colorDark, text, textDark }`. A known key keeps its default name and colours unless you override them. A new key needs `color`. |
 | `tiers` | `ui`, `domain`, `data` | Keys, or objects `{ k, name, what }`. With a single tier, the tier columns are hidden. |
-| `tierFromPath` | rules for the default tiers | `[{ "pattern": "regex on the path", "tier": "key" }]`. The first match wins. |
+| `tierFromPath` | rules for the default tiers, or none if you set `tiers` | `[{ "pattern": "regex on the path", "tier": "key" }]`. The first match wins. If you set your own `tiers`, the default rules are not used, so write the rules you need, or set `defaultTier`. |
 | `defaultTier` | none | Tier for tests that no rule matches and that have no `tier:` in the tag. |
 
 ### Spec sources
 
-- **Markdown tables** (`"source": "markdown"`): reads table rows whose first cell starts with an id followed by the spec's name, for example `| FR-3 Current library | ... |`. `idPattern` is a regex with the named groups `prefix` and `num`. `groups` maps a prefix to a group heading, and its order sets the order of the groups.
+- **Markdown tables** (`"source": "markdown"`): reads table rows whose first cell starts with an id followed by the spec's name, for example `| FR-3 Current library | ... |`. `files` lists the Markdown files (`file` works for one). `idPattern` is a regex with the named groups `prefix` and `num`; the default, `(?<prefix>[A-Z]+)-(?<num>\d+)`, matches ids like `FR-3` and `US-12`. `groups` maps a prefix to a group heading, and its order sets the order of the groups. With `groups` set, specs are sorted by group, then by number. Without it, they keep their order in the files. An id that appears twice is kept once.
 - **A list** (`"source": "list"`): `"items": [{ "id": "LOGIN", "name": "Sign in", "group": "Account" }]`.
 - **None** (`"source": "none"`): no spec rows. The dashboard has one row per test folder, and tags need only `cat`.
 
@@ -255,7 +263,7 @@ Specs with no tests are still listed, with a dashed "no tests yet" bar, so gaps 
 
 ### Interacting with it
 
-Each change below is saved in your browser only, never in the file, so other readers see the page as built.
+Changes to the theme, colours and hidden categories are saved in your browser only, never in the file, so other readers see the page as built. The tests selected for a change request are not saved; they are cleared when you reload.
 
 | Control | What it does |
 |---|---|
@@ -276,7 +284,7 @@ The map is a static page, so it can't edit your tests. It can tell Claude exactl
 
 1. Click a bar segment to select its tests. Click more segments to add more, in any row or tier column. A test picked twice, for example one that cites two specs, is listed once.
 2. In the **Selected tests** panel, untick any test you want to leave alone, and choose a **New category**, a **New tier**, or both.
-3. Click **Copy change request** and paste the text to Claude in chat.
+3. Click **Copy change request** and paste the text to Claude in chat. If your browser blocks copying, the page leaves the text selected in a box and asks you to press Ctrl+C (or Cmd+C). **Copy as config** works the same way.
 
 ```
 VisualTDD change request: "Happy scenario", generated 2026-10-15T00:00:00.000Z
