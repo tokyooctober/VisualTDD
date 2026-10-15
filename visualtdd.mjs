@@ -192,7 +192,7 @@ function walk(dir) {
 }
 
 function humanise(fn) {
-  return fn.replace(/^test_?(?=[A-Z_])/, '').replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z])([A-Z][a-z])/g, '$1 $2').toLowerCase().trim();
+  return fn.replace(/^[Tt]est_?(?=[A-Z_])/, '').replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z])([A-Z][a-z])/g, '$1 $2').toLowerCase().trim();
 }
 
 const TAG = /^\s*(?:\/\/|#)\s*((?:spec|cat|tier)\s*:.*)$/;
@@ -392,4 +392,7 @@ function main(argv) {
   return 0;
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) process.exitCode = main(process.argv.slice(2));
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  // A config or spec file that cannot be read ends with its message, not a stack trace.
+  try { process.exitCode = main(process.argv.slice(2)); } catch (e) { console.error(`error: ${e.message}`); process.exitCode = 1; }
+}

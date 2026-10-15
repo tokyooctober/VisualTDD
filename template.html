@@ -234,7 +234,12 @@ function makeBar(row, items, where) {
 var G = document.getElementById('G');
 var maxTotal = Math.max.apply(null, ROWS.map(function (r) { return r.tests.length; }).concat([5]));
 var trackW = Math.ceil(maxTotal / 5) * 5 * UNIT;
-var tierTotals = TIERS.map(function (t) { return ROWS.reduce(function (a, r) { return a + r.tests.filter(function (x) { return x.tier === t.k; }).length; }, 0); });
+/* Unique tests per tier: a test that cites two specs sits in two rows but is counted once here. */
+var tierTotals = TIERS.map(function (t) {
+  var seen = {};
+  ROWS.forEach(function (r) { r.tests.forEach(function (x) { if (x.tier === t.k) seen[x.file + ':' + x.line] = true; }); });
+  return Object.keys(seen).length;
+});
 var ruler = '<div class="ruler" style="width:' + trackW + 'px">';
 for (var v = 0; v <= trackW / UNIT; v += 5) ruler += '<span style="left:' + (v * UNIT) + 'px">' + v + '</span>';
 ruler += '</div>';

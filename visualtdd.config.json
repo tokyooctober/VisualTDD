@@ -1,0 +1,22 @@
+{
+  "title": "VisualTDD test map",
+  "output": "docs/test-map.html",
+  "testRoots": ["test/engine.test.mjs", "test/cli.test.mjs", "test/page.test.mjs"],
+  "languages": ["js"],
+  "specs": {
+    "source": "markdown",
+    "files": ["docs/spec.md"],
+    "idPattern": "(?<prefix>N?FR)-(?<num>\\d+)",
+    "groups": { "FR": "Functional requirements", "NFR": "Non-functional requirements" }
+  },
+  "tiers": [
+    { "k": "engine", "name": "Engine", "what": "Config, scanning, specs and the model" },
+    { "k": "cli", "name": "CLI", "what": "The command run as a process: flags, exit codes, files" },
+    { "k": "page", "name": "Page", "what": "The generated HTML dashboard" }
+  ],
+  "tierFromPath": [
+    { "pattern": "(^|/)engine\\.test\\.mjs$", "tier": "engine" },
+    { "pattern": "(^|/)cli\\.test\\.mjs$", "tier": "cli" },
+    { "pattern": "(^|/)page\\.test\\.mjs$", "tier": "page" }
+  ]
+}

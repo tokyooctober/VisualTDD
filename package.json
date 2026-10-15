@@ -6,7 +6,11 @@
   "bin": { "visualtdd": "visualtdd.mjs" },
   "engines": { "node": ">=22" },
   "files": ["visualtdd.mjs", "template.html"],
-  "scripts": { "test": "node --test \"test/*.test.mjs\"" },
+  "scripts": {
+    "test": "node --test \"test/*.test.mjs\"",
+    "map": "node visualtdd.mjs",
+    "map:check": "node visualtdd.mjs --check"
+  },
   "license": "UNLICENSED",
   "private": true
 }
