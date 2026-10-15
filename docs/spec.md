@@ -1,6 +1,6 @@
 # VisualTDD spec
 
-What VisualTDD must do. The tests in `test/` cite these ids in their tags, and `docs/test-map.html` shows how many tests cover each one. Rebuild the map with `npm run map`.
+What VisualTDD must do. The tests in `test/` cite these ids in their tags, and [`reference-test-map.html`](reference-test-map.html) shows how many tests cover each one. That map is VisualTDD's own dashboard, built by VisualTDD from its own tests and committed as the reference example. Rebuild it with `npm run map`.
 
 ## Functional requirements
 

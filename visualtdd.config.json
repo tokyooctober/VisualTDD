@@ -1,6 +1,6 @@
 {
-  "title": "VisualTDD test map",
-  "output": "docs/test-map.html",
+  "title": "VisualTDD reference test map",
+  "output": "docs/reference-test-map.html",
   "testRoots": ["test/engine.test.mjs", "test/cli.test.mjs", "test/page.test.mjs", "test/scenarios.test.mjs"],
   "languages": ["js"],
   "specs": {

@@ -5,6 +5,7 @@ VisualTDD shows how many tests cover each spec (requirement) in a project. It br
 - Works with tests in JavaScript/TypeScript, Kotlin, Java, Python, Swift and Go, and other languages by configuration.
 - One file, `visualtdd.mjs`, plus `template.html`. It needs only Node 22 and no packages.
 - Every test is drawn the same width, so two specs with the same number of tests have bars of the same length.
+- The dashboard is one self-contained HTML file. You can switch it between light and dark, hide categories to focus on the rest, recolour categories, and pick tests to copy a [change request](#changing-tags-from-the-map) for Claude.
 
 ## Quick start
 
@@ -238,11 +239,36 @@ All paths are relative to the project root, which is the config file's folder un
 
 Specs with no tests are still listed, with a dashed "no tests yet" bar, so gaps are visible.
 
+## Dashboard
+
+`node visualtdd.mjs` writes one HTML file (by default `docs/test-map.html`). It needs no server and loads nothing from the internet, so you can open it from disk, commit it, or attach it to a pull request.
+
+### Reading it
+
+- **One row per spec**, grouped as the spec file groups them. Specs with no tests stay as rows with a dashed **no tests yet** bar, so gaps are visible.
+- **All tiers** is the whole spec: one bar on a single ruler, split into one coloured segment per category. Every test is the same width, and faint lines mark every 5 tests.
+- **One column per tier** shows where those tests live, with the same segments. A dash means that tier has no tests for the spec. Each tier's header counts its unique tests.
+- **Hover a segment** to see the spec, column, category, count and test names (up to eight, then "+ n more").
+- **The stats line** shows the number of tests and how many specs have a test.
+- **Under the title**, the page shows when it was generated, in your local time. Hover it for the exact UTC time.
+- A test that cites two specs is drawn in both rows but counted once in the totals.
+
+### Interacting with it
+
+Each change below is saved in your browser only, never in the file, so other readers see the page as built.
+
+| Control | What it does |
+|---|---|
+| **Theme** (top right) | Auto (follows your system), Light or Dark. The config's `theme` sets the default. |
+| **A category's name** in the legend | Hides that category's tests from every bar, count and the ruler, so you can focus on the rest. Click it again, or **Show all categories**, to bring them back. |
+| **A category's colour swatch** in the legend | Picks a new colour for the theme you are viewing, with a live colour-blind clash check. See [Colours](#colours). |
+| **A bar segment** (click, or Enter / Space) | Adds its tests to the **Selected tests** panel, to copy a change request. See [Changing tags from the map](#changing-tags-from-the-map). |
+
 ## Colours
 
 - **In the config:** set `color` (light theme) and `colorDark` (dark theme) per category. The text printed on a bar is picked automatically for contrast, or set it with `text` and `textDark`. The default colours were chosen so that neighbouring categories stay distinguishable for colour-blind readers. When you change them, VisualTDD checks each neighbouring pair and prints a warning if two have become too close. The warning never fails the build.
 - **In the dashboard:** click a category's swatch in the legend to pick a new colour. The bars change at once, for the theme you are viewing. The choice is saved in that browser only. The same colour-blind check runs as you pick and flags clashing categories. **Copy as config** copies the current colours as JSON. Paste it into `visualtdd.config.json` and rebuild to make them permanent for everyone. **Reset colors** goes back to the config.
-- **Hiding categories:** click a category's name in the legend to hide its tests, so you can focus on the others. Hidden tests leave every bar and count, and the ruler shrinks to fit what is left. The stats line shows how many tests are still shown. Click the name again, or **Show all categories**, to bring them back. Like colours, the choice is saved in that browser only.
+- **Hidden categories** are left out of the clash check, since they are no longer drawn next to anything. While some are hidden, the stats line says how many tests are still shown, for example "39 shown, 2 categories hidden". A spec whose tests are all hidden shows an empty bar and 0, not "no tests yet".
 
 ## Changing tags from the map
 
@@ -275,7 +301,9 @@ The suite runs the tool on the fixture projects in `test/fixtures` (JS, Kotlin, 
 
 `test/scenarios` holds scenario data: a **happy** project where every tag is valid, and a **negative** project where tags are wrong in every way found so far. Each has an `expected.json` that says exactly what the dashboard must draw. When you find a case the scenarios miss, add it to the data and to `expected.json`. See [test/scenarios/README.md](test/scenarios/README.md).
 
-VisualTDD maps its own tests. `docs/spec.md` lists what the tool must do. Every test in `test/engine.test.mjs`, `test/cli.test.mjs`, `test/page.test.mjs` and `test/scenarios.test.mjs` is tagged with the spec it proves, and the file name decides the tier (engine, CLI or page). `npm run map` rebuilds [`docs/test-map.html`](docs/test-map.html), and `npm run map:check` checks the tags.
+VisualTDD maps its own tests. `docs/spec.md` lists what the tool must do. Every test in `test/engine.test.mjs`, `test/cli.test.mjs`, `test/page.test.mjs` and `test/scenarios.test.mjs` is tagged with the spec it proves, and the file name decides the tier (engine, CLI or page). `npm run map` rebuilds [`docs/reference-test-map.html`](docs/reference-test-map.html), and `npm run map:check` checks the tags.
+
+**The reference test map.** [`docs/reference-test-map.html`](docs/reference-test-map.html) is VisualTDD's own dashboard, built by VisualTDD from its own tests and committed to the repo. It is the reference example of what the tool produces: open it to see every dashboard feature on a real project. Rebuild and commit it whenever the tests or `docs/spec.md` change.
 
 ## Claude skill
 
