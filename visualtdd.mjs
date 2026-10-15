@@ -278,7 +278,7 @@ export function readSpecs(cfg) {
 }
 
 export function buildModel(cfg) {
-  const { tests, problems } = scanTests(cfg);
+  let { tests, problems } = scanTests(cfg);
   const specs = readSpecs(cfg);
   const extras = cfg.extraSpecs?.items ?? {};
   let rows;
@@ -289,7 +289,10 @@ export function buildModel(cfg) {
     for (const t of tests) rows.find((r) => r.id === dirname(t.file)).tests.push({ name: t.name, file: t.file, line: t.line, tier: t.tier, cat: t.cat });
   } else {
     const known = new Set([...specs.map((s) => s.id), ...Object.keys(extras)]);
-    for (const t of tests) for (const s of t.specs) if (!known.has(s)) problems.push(`${t.file}:${t.line}  "${s}" is not a known spec id${Object.keys(extras).length ? ` or extra spec (${Object.keys(extras).join(', ')})` : ''}`);
+    const unknown = (t) => t.specs.filter((s) => !known.has(s));
+    for (const t of tests) for (const s of unknown(t)) problems.push(`${t.file}:${t.line}  "${s}" is not a known spec id${Object.keys(extras).length ? ` or extra spec (${Object.keys(extras).join(', ')})` : ''}`);
+    // Like any other bad tag, a test citing an unknown spec is left out entirely, even from the rows of its known specs.
+    tests = tests.filter((t) => !unknown(t).length);
     rows = specs.map((s) => ({ id: s.id, name: s.name, group: s.group, kind: 'spec', tests: [] }));
     const used = new Set(tests.flatMap((t) => t.specs));
     for (const [id, name] of Object.entries(extras)) if (used.has(id)) rows.push({ id, name, group: cfg.extraSpecs.group ?? 'Other', kind: 'extra', tests: [] });

@@ -1,0 +1,12 @@
+{
+  "title": "Happy scenario",
+  "languages": ["js", "python", "kotlin"],
+  "specs": {
+    "source": "markdown",
+    "files": ["spec.md"],
+    "idPattern": "(?<prefix>N?FR)-(?<num>\\d+)",
+    "groups": { "FR": "Functional requirements", "NFR": "Non-functional requirements" }
+  },
+  "extraSpecs": { "group": "Other work", "items": { "SETUP": "Test setup", "SPIKE": "Never cited, so never shown" } },
+  "defaultTier": "domain"
+}

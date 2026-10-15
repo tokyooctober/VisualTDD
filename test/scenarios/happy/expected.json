@@ -1,0 +1,41 @@
+{
+  "about": "Every tag is valid. Tests in three languages spread across the three default tiers and six categories, a test citing two specs, a spec with no tests, a tier set by the tag, a defaultTier fallback, an extra spec, and nine tests in one segment.",
+  "problems": [],
+  "stats": ["19 tests", "4 of 5 specs have a test", "1 have none"],
+  "rulerMax": 10,
+  "tierHeaders": [["UI", 3], ["Domain", 12], ["Data", 4]],
+  "rows": [
+    { "group": "Functional requirements", "spec": "FR-1 Sign in", "total": 4,
+      "all": ["ui 2", "input 1", "sec 1"],
+      "tiers": { "UI": ["ui 2", "input 1"], "Domain": ["sec 1"], "Data": "—" } },
+    { "group": "Functional requirements", "spec": "FR-2 Cart", "total": 3,
+      "all": ["logic 2", "err 1"],
+      "tiers": { "UI": "—", "Domain": ["logic 2"], "Data": ["err 1"] } },
+    { "group": "Functional requirements", "spec": "FR-3 Payment", "total": 3,
+      "all": ["logic 1", "data 1", "integ 1"],
+      "tiers": { "UI": "—", "Domain": ["logic 1"], "Data": ["data 1", "integ 1"] } },
+    { "group": "Functional requirements", "spec": "FR-4 Export", "total": 0,
+      "all": "no tests yet",
+      "tiers": null },
+    { "group": "Non-functional requirements", "spec": "NFR-1 Speed", "total": 9,
+      "all": ["perf 9"],
+      "tiers": { "UI": "—", "Domain": ["perf 9"], "Data": "—" } },
+    { "group": "Other work", "spec": "SETUP Test setup", "total": 1,
+      "all": ["integ 1"],
+      "tiers": { "UI": "—", "Domain": "—", "Data": ["integ 1"] } }
+  ],
+  "tooltips": [
+    { "spec": "FR-1", "column": "all tiers", "cat": "ui",
+      "lines": ["FR-1 · all tiers · UI / Visual: 2 tests", "• shows the sign-in form", "• shows the error in red"] },
+    { "spec": "FR-1", "column": "Domain", "cat": "sec",
+      "lines": ["FR-1 · Domain · Security: 1 test", "• never logs the password"] },
+    { "spec": "FR-2", "column": "Data", "cat": "err",
+      "lines": ["FR-2 · Data · Error handling: 1 test", "• reports a failed save"] },
+    { "spec": "FR-3", "column": "Domain", "cat": "logic",
+      "lines": ["FR-3 · Domain · Functional / Logic: 1 test", "• applies a discount before payment"] },
+    { "spec": "FR-3", "column": "Data", "cat": "integ",
+      "lines": ["FR-3 · Data · Integration / Contract: 1 test", "• sends the payment to the bank"] },
+    { "spec": "NFR-1", "column": "Domain", "cat": "perf",
+      "lines": ["NFR-1 · Domain · Performance: 9 tests", "• large cart 1", "• large cart 2", "• large cart 3", "• large cart 4", "• large cart 5", "• large cart 6", "• large cart 7", "• large cart 8", "+ 1 more"] }
+  ]
+}

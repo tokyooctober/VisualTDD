@@ -1,0 +1,10 @@
+{
+  "title": "Negative scenario",
+  "languages": ["js", "python"],
+  "specs": {
+    "source": "markdown",
+    "files": ["spec.md"],
+    "idPattern": "(?<prefix>FR)-(?<num>\\d+)",
+    "groups": { "FR": "Functional requirements" }
+  }
+}

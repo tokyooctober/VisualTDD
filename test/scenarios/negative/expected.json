@@ -1,0 +1,33 @@
+{
+  "about": "Every way a tag can be wrong, each reported with its file and line and left out of the dashboard. FR-2 is cited only by bad tests, so it must show no tests. Two good tests (one in JS, one in Python with decorators) are the only ones drawn.",
+  "problems": [
+    "lib/where.test.js:3  the path does not decide the tier; add \"tier: ...\" (ui, domain, data)",
+    "src/ui/bad.test.js:1  no \"// spec: ...; cat: ...\" line above \"has no tag\"",
+    "src/ui/bad.test.js:4  unknown cat \"speed\" (use ui, input, logic, perf, data, integ, sec, err)",
+    "src/ui/bad.test.js:7  unknown tier \"cloud\"",
+    "src/ui/bad.test.js:13  no spec id",
+    "src/ui/bad.test.js:17  no \"// spec: ...; cat: ...\" line above \"tag above a blank line\"",
+    "src/ui/bad.test.js:21  no \"// spec: ...; cat: ...\" line above \"code between the tag and the test\"",
+    "tests/ui/test_bad.py:2  unknown cat \"Logic\" (use ui, input, logic, perf, data, integ, sec, err)",
+    "tests/ui/test_bad.py:6  no \"# spec: ...; cat: ...\" line above \"untagged python\"",
+    "src/ui/bad.test.js:10  \"FR-9\" is not a known spec id",
+    "src/ui/bad.test.js:24  \"FR-9\" is not a known spec id"
+  ],
+  "stats": ["2 tests", "1 of 2 specs have a test", "1 have none"],
+  "rulerMax": 5,
+  "tierHeaders": [["UI", 2], ["Domain", 0], ["Data", 0]],
+  "rows": [
+    { "group": "Functional requirements", "spec": "FR-1 Sign in", "total": 2,
+      "all": ["ui 1", "logic 1"],
+      "tiers": { "UI": ["ui 1", "logic 1"], "Domain": "—", "Data": "—" } },
+    { "group": "Functional requirements", "spec": "FR-2 Cart", "total": 0,
+      "all": "no tests yet",
+      "tiers": null }
+  ],
+  "tooltips": [
+    { "spec": "FR-1", "column": "all tiers", "cat": "ui",
+      "lines": ["FR-1 · all tiers · UI / Visual: 1 test", "• a good test among bad ones"] },
+    { "spec": "FR-1", "column": "UI", "cat": "logic",
+      "lines": ["FR-1 · UI · Functional / Logic: 1 test", "• tag above decorators is fine"] }
+  ]
+}

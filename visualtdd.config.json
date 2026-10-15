@@ -1,7 +1,7 @@
 {
   "title": "VisualTDD test map",
   "output": "docs/test-map.html",
-  "testRoots": ["test/engine.test.mjs", "test/cli.test.mjs", "test/page.test.mjs"],
+  "testRoots": ["test/engine.test.mjs", "test/cli.test.mjs", "test/page.test.mjs", "test/scenarios.test.mjs"],
   "languages": ["js"],
   "specs": {
     "source": "markdown",
@@ -17,6 +17,7 @@
   "tierFromPath": [
     { "pattern": "(^|/)engine\\.test\\.mjs$", "tier": "engine" },
     { "pattern": "(^|/)cli\\.test\\.mjs$", "tier": "cli" },
-    { "pattern": "(^|/)page\\.test\\.mjs$", "tier": "page" }
+    { "pattern": "(^|/)page\\.test\\.mjs$", "tier": "page" },
+    { "pattern": "(^|/)scenarios\\.test\\.mjs$", "tier": "page" }
   ]
 }

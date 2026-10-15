@@ -109,6 +109,8 @@ npm test
 
 The suite runs the tool on the fixture projects in `test/fixtures` (JS, Kotlin, Python) and on throwaway projects it writes to a temp folder. `examples/hiroapp.config.json` is the configuration of the project VisualTDD was extracted from.
 
+`test/scenarios` holds scenario data: a **happy** project where every tag is valid, and a **negative** project where tags are wrong in every way found so far. Each has an `expected.json` that says exactly what the dashboard must draw. When you find a case the scenarios miss, add it to the data and to `expected.json`. See [test/scenarios/README.md](test/scenarios/README.md).
+
 VisualTDD maps its own tests. `docs/spec.md` lists what the tool must do. Every test in `test/engine.test.mjs`, `test/cli.test.mjs` and `test/page.test.mjs` is tagged with the spec it proves, and the file name decides the tier (engine, CLI or page). `npm run map` rebuilds [`docs/test-map.html`](docs/test-map.html), and `npm run map:check` checks the tags.
 
 ## Claude skill
