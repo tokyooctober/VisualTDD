@@ -67,7 +67,7 @@ export function openPage(html, { storage = new Map(), dark = false, clipboard = 
     appendChild(c) { this.children.push(c); return c; }
     querySelector(tag) { return this.children.find((c) => c.tagName === tag.toUpperCase()) ?? null; }
     addEventListener(type, fn) { (this.listeners[type] ??= []).push(fn); }
-    dispatch(type) { for (const fn of this.listeners[type] ?? []) fn({ target: this }); }
+    dispatch(type, extra = {}) { for (const fn of this.listeners[type] ?? []) fn({ target: this, preventDefault() {}, ...extra }); }
     setAttribute(k, v) { this.attrs[k] = String(v); for (const fn of observers) fn([]); }
     getAttribute(k) { return this.attrs[k] ?? null; }
     removeAttribute(k) { delete this.attrs[k]; for (const fn of observers) fn([]); }

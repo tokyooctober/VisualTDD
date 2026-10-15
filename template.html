@@ -52,7 +52,14 @@ p { margin: 0; color: var(--ink2); max-width: 68ch; }
 .theme select { font: inherit; font-size: 12px; padding: 4px 8px; border-radius: 7px; border: 1px solid var(--axis); background: var(--surface); color: var(--ink); cursor: pointer; }
 .theme select:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 #clash { font-size: 12px; color: var(--warn); background: var(--warn-bg); border-radius: 8px; padding: 8px 10px; }
-#copybox { width: 100%; min-height: 120px; font: 12px ui-monospace, Menlo, Consolas, monospace; color: var(--ink); background: var(--bg); border: 1px solid var(--axis); border-radius: 8px; padding: 8px; }
+.seg { cursor: pointer; }
+.seg:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
+.pick { border-top: 1px solid var(--axis); padding-top: 14px; display: flex; flex-direction: column; gap: 10px; }
+.pick ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+.pick li label { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; cursor: pointer; }
+.pick .now { font-size: 12px; color: var(--muted); padding-left: 24px; }
+.pick select { font: inherit; font-size: 12px; padding: 4px 8px; border-radius: 7px; border: 1px solid var(--axis); background: var(--surface); color: var(--ink); }
+#reqbox, #copybox { width: 100%; min-height: 120px; font: 12px ui-monospace, Menlo, Consolas, monospace; color: var(--ink); background: var(--bg); border: 1px solid var(--axis); border-radius: 8px; padding: 8px; }
 .scale { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--ink2); }
 .scale i { display: inline-block; height: 8px; border-left: 1px solid var(--muted); border-right: 1px solid var(--muted); }
 .stats { display: flex; flex-wrap: wrap; gap: 4px 24px; font-size: 13px; color: var(--ink2); }
@@ -104,7 +111,7 @@ code { font-size: 12px; background: var(--chip); padding: 1px 5px; border-radius
 
   <section class="panel" aria-labelledby="gr">
     <div><h2 id="gr">Tests per spec, on one ruler</h2>
-    <p>Faint lines in the first column mark every 5 tests. A dash means a tier has no tests for that spec, and a dashed bar means the spec has no tests at all. Hover a segment to see the test names.</p></div>
+    <p>Faint lines in the first column mark every 5 tests. A dash means a tier has no tests for that spec, and a dashed bar means the spec has no tests at all. Hover a segment to see the test names, and click it to select its tests for a change request.</p></div>
     <div class="stats" id="stats"></div>
     <div class="legend" id="legend"></div>
     <div class="tools">
@@ -118,6 +125,19 @@ code { font-size: 12px; background: var(--chip); padding: 1px 5px; border-radius
     <textarea id="copybox" hidden readonly aria-label="Colour config to paste into visualtdd.config.json"></textarea>
     <div class="scale" id="scale"></div>
     <div class="scroll"><table class="g" id="G"></table></div>
+    <div class="pick" id="pick" hidden>
+      <h2>Selected tests <span id="pickcount"></span></h2>
+      <p>Untick any test to leave out, choose the change, then copy the request and paste it to Claude in chat.</p>
+      <ul id="picklist"></ul>
+      <div class="tools">
+        <label>New category <select id="newcat"></select></label>
+        <label id="newtierlabel">New tier <select id="newtier"></select></label>
+        <button type="button" id="copyreq">Copy change request</button>
+        <button type="button" id="clearpick">Clear selection</button>
+        <span id="pickstatus" role="status"></span>
+      </div>
+      <textarea id="reqbox" hidden readonly aria-label="Change request to paste to Claude"></textarea>
+    </div>
     <p class="note">Tags live in the test files as a comment above each test, for example <code>// spec: FR-3; cat: logic</code>. Rebuild this page with <code>node visualtdd.mjs</code>. A test that cites two specs appears in both rows, so row totals can add up to more than the test count.</p>
   </section>
 </div>
@@ -310,10 +330,81 @@ function makeBar(row, items, where) {
     var names = these.slice(0, 8).map(function (x) { return '• ' + x.name; }).join('\n');
     if (these.length > 8) names += '\n+ ' + (these.length - 8) + ' more';
     bindTip(g, row.id + ' · ' + where + ' · ' + c.name + ': ' + n + (n === 1 ? ' test' : ' tests') + '\n' + names);
+    /* Clicking (or Enter / Space) adds this segment's tests to the Selected tests panel. */
+    g.setAttribute('tabindex', '0'); g.setAttribute('role', 'button');
+    var from = row.id + ' · ' + where + ' · ' + c.name;
+    g.addEventListener('click', function () { pick(these, from); });
+    g.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(these, from); } });
     bar.appendChild(g);
   });
   return bar;
 }
+
+/* ---- change request: tests picked from segments, each once (keyed by file:line), to paste to Claude ---- */
+var picked = [];
+function keyOf(t) { return t.file + ':' + t.line; }
+function tagOf(t) {
+  return (t.specs && t.specs.length ? 'spec: ' + t.specs.join(', ') + '; ' : '') + 'cat: ' + t.cat + '; tier: ' + t.tier;
+}
+function pick(tests, from) {
+  tests.forEach(function (t) {
+    if (!picked.some(function (p) { return p.key === keyOf(t); })) picked.push({ key: keyOf(t), t: t, from: from, on: true });
+  });
+  document.getElementById('pickstatus').textContent = '';
+  drawPicks();
+}
+function drawPicks() {
+  var list = document.getElementById('picklist');
+  document.getElementById('pick').hidden = !picked.length;
+  document.getElementById('pickcount').textContent = '· ' + picked.length;
+  list.innerHTML = '';
+  picked.forEach(function (p) {
+    var li = el('li', '', '<label><input type="checkbox" id="tick-' + esc(p.key) + '"' + (p.on ? ' checked' : '') + '> <b>' + esc(p.t.name) + '</b> <code>' + esc(p.key) + '</code></label>' +
+      '<div class="now">now: ' + esc(tagOf(p.t)) + ' · picked from ' + esc(p.from) + '</div>');
+    list.appendChild(li);
+    var box = document.getElementById('tick-' + p.key);
+    box.checked = p.on;
+    box.addEventListener('change', function (e) { p.on = e.target.checked; });
+  });
+}
+document.getElementById('newcat').innerHTML = '<option value="">keep</option>' + CATS.map(function (c) { return '<option value="' + esc(c.k) + '">' + esc(c.name) + '</option>'; }).join('');
+document.getElementById('newtier').innerHTML = '<option value="">keep</option>' + TIERS.map(function (t) { return '<option value="' + esc(t.k) + '">' + esc(t.name) + '</option>'; }).join('');
+document.getElementById('newtierlabel').hidden = !SHOW_TIERS;
+/** The request text, or null with a message when there is nothing to change. */
+function changeRequest() {
+  var cat = document.getElementById('newcat').value, tier = document.getElementById('newtier').value;
+  var on = picked.filter(function (p) { return p.on; });
+  if (!on.length) return { error: 'Tick at least one test.' };
+  if (!cat && !tier) return { error: 'Choose a new category or tier.' };
+  var changes = [];
+  if (cat) changes.push('cat to ' + cat);
+  if (tier) changes.push('tier to ' + tier);
+  var lines = [
+    'VisualTDD change request: "' + DATA.title + '", generated ' + DATA.generatedAt,
+    'Set ' + changes.join(' and ') + ' on ' + (on.length === 1 ? 'this test' : 'these ' + on.length + ' tests') + '. Change only the tag lines of the tests listed.',
+  ];
+  on.forEach(function (p) {
+    lines.push('- ' + p.key + '  "' + p.t.name + '"');
+    lines.push('    now: ' + tagOf(p.t) + '   (picked from ' + p.from + ')');
+  });
+  lines.push('If a test is no longer at that line, find it by name in the same file.');
+  lines.push('Then run --check, the tests, and rebuild the map.');
+  return { text: lines.join('\n') };
+}
+document.getElementById('copyreq').addEventListener('click', function () {
+  var req = changeRequest(), box = document.getElementById('reqbox'), status = document.getElementById('pickstatus');
+  if (req.error) { status.textContent = req.error; box.hidden = true; return; }
+  box.value = req.text;
+  function showBox() { box.hidden = false; box.focus(); box.select(); status.textContent = 'Copy the text below and paste it to Claude.'; }
+  try {
+    navigator.clipboard.writeText(req.text).then(function () {
+      box.hidden = true; status.textContent = 'Copied. Paste it to Claude in chat.';
+    }, showBox);
+  } catch (e) { showBox(); }
+});
+document.getElementById('clearpick').addEventListener('click', function () {
+  picked = []; document.getElementById('reqbox').hidden = true; document.getElementById('pickstatus').textContent = ''; drawPicks();
+});
 
 /* The table is redrawn whenever a category is hidden or shown; only the shown tests are drawn and counted. */
 var G = document.getElementById('G');

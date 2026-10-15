@@ -370,3 +370,62 @@ test('a broken saved list or blocked storage shows every category, and hiding st
   page.$('hide-ui').dispatch('click');
   assert.equal(page.$('hide-ui').getAttribute('aria-pressed'), 'false');
 });
+
+// ---------- change request ----------
+
+/** Every drawn bar segment on the page, in table order. */
+function segments(page) {
+  const out = [];
+  const walk = (e) => { if (e.className === 'seg') out.push(e); e.children.forEach(walk); };
+  walk(page.$('G'));
+  return out;
+}
+
+// spec: FR-23; cat: ui
+test('Enter or Space on a segment selects its tests, other keys do not, and Clear empties the panel', () => {
+  const { page } = defaultPage();
+  const seg = segments(page)[0];
+  assert.equal(seg.getAttribute('role'), 'button');
+  assert.equal(seg.getAttribute('tabindex'), '0');
+  assert.equal(page.$('pick').hidden, true, 'the panel waits for a selection');
+  seg.dispatch('keydown', { key: 'a' });
+  assert.equal(page.$('pick').hidden, true);
+  seg.dispatch('keydown', { key: 'Enter' });
+  assert.equal(page.$('pick').hidden, false);
+  assert.equal(page.$('pickcount').textContent, '· 1');
+  seg.dispatch('keydown', { key: ' ' });
+  assert.equal(page.$('pickcount').textContent, '· 1', 'picking the same test again lists it once');
+  assert.match(page.$('picklist').children[0].innerHTML, /<code>a\.test\.js:2<\/code>/);
+  page.$('clearpick').dispatch('click');
+  assert.equal(page.$('pick').hidden, true);
+  assert.equal(page.$('picklist').children.length, 0);
+});
+
+// spec: FR-23; cat: input
+test('Copy change request needs a ticked test and a new category or tier, and says which is missing', async () => {
+  const { page } = defaultPage();
+  segments(page)[0].dispatch('click');
+  page.$('copyreq').dispatch('click');
+  assert.equal(page.$('pickstatus').textContent, 'Choose a new category or tier.');
+  page.$('newcat').value = 'input';
+  const box = page.$('tick-a.test.js:2'); box.checked = false; box.dispatch('change');
+  page.$('copyreq').dispatch('click');
+  assert.equal(page.$('pickstatus').textContent, 'Tick at least one test.');
+  await new Promise((r) => setTimeout(r, 0));
+  assert.deepEqual(page.copied, [], 'nothing is copied');
+});
+
+// spec: FR-23; cat: err
+test('when the clipboard is refused, the change request is shown in a box to copy by hand', async () => {
+  const { page } = defaultPage({ clipboard: 'denied' });
+  assert.equal(page.$('newtierlabel').hidden, true, 'with one tier there is no tier to change');
+  segments(page)[0].dispatch('click');
+  page.$('newcat').value = 'input';
+  page.$('copyreq').dispatch('click');
+  await new Promise((r) => setTimeout(r, 0));
+  assert.equal(page.$('reqbox').hidden, false);
+  assert.match(page.$('reqbox').value, /^VisualTDD change request: "Colours", generated \d{4}-\d\d-\d\dT/);
+  assert.match(page.$('reqbox').value, /\nSet cat to input on this test\. /);
+  assert.match(page.$('reqbox').value, /\n- a\.test\.js:2  "x"\n    now: cat: logic; tier: all   \(picked from \. · tests · Functional \/ Logic\)\n/);
+  assert.equal(page.$('pickstatus').textContent, 'Copy the text below and paste it to Claude.');
+});

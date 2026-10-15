@@ -286,7 +286,7 @@ export function buildModel(cfg) {
     // No spec list: one row per test folder.
     const dirs = [...new Set(tests.map((t) => dirname(t.file)))];
     rows = dirs.map((d) => ({ id: d, name: '', group: 'Test folders', kind: 'folder', tests: [] }));
-    for (const t of tests) rows.find((r) => r.id === dirname(t.file)).tests.push({ name: t.name, file: t.file, line: t.line, tier: t.tier, cat: t.cat });
+    for (const t of tests) rows.find((r) => r.id === dirname(t.file)).tests.push({ name: t.name, file: t.file, line: t.line, tier: t.tier, cat: t.cat, specs: t.specs });
   } else {
     const known = new Set([...specs.map((s) => s.id), ...Object.keys(extras)]);
     const unknown = (t) => t.specs.filter((s) => !known.has(s));
@@ -296,7 +296,7 @@ export function buildModel(cfg) {
     rows = specs.map((s) => ({ id: s.id, name: s.name, group: s.group, kind: 'spec', tests: [] }));
     const used = new Set(tests.flatMap((t) => t.specs));
     for (const [id, name] of Object.entries(extras)) if (used.has(id)) rows.push({ id, name, group: cfg.extraSpecs.group ?? 'Other', kind: 'extra', tests: [] });
-    for (const t of tests) for (const s of t.specs) rows.find((r) => r.id === s)?.tests.push({ name: t.name, file: t.file, line: t.line, tier: t.tier, cat: t.cat });
+    for (const t of tests) for (const s of t.specs) rows.find((r) => r.id === s)?.tests.push({ name: t.name, file: t.file, line: t.line, tier: t.tier, cat: t.cat, specs: t.specs });
   }
   const model = { title: cfg.title, theme: cfg.theme, categories: cfg.categories, tiers: cfg.tiers, rows, uniqueTests: tests.length, specMode: cfg.specs.source };
   return { model, problems };

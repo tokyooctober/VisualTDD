@@ -75,6 +75,7 @@ function drawn(page, model, tooltipsWanted) {
     names,
     rows,
     tooltips,
+    cells, // the drawn segments, by "spec|column", for tests that click them; not compared
   };
 }
 
@@ -87,7 +88,8 @@ function scenario(name) {
   const { cfg, problems: configProblems } = loadConfig(JSON.parse(readFileSync(join(dir, 'visualtdd.config.json'), 'utf8')), dir);
   assert.deepEqual(configProblems, []);
   const { model, problems } = buildModel(cfg);
-  const actual = { problems, ...drawn(openPage(render(model)), model, expected.tooltips ?? []) };
+  const { cells, ...page } = drawn(openPage(render(model)), model, expected.tooltips ?? []);
+  const actual = { problems, ...page };
   const result = { dir, expected, actual, model };
   cache.set(name, result);
   return result;
@@ -102,8 +104,8 @@ function check(name, keys) {
 /** Compares the whole page with expected.json, or rewrites expected.json in update mode. */
 function checkAll(name) {
   const { dir, expected, actual } = scenario(name);
-  if (UPDATE) { writeFileSync(join(dir, 'expected.json'), JSON.stringify({ about: expected.about, ...actual, whenHidden: expected.whenHidden }, null, 2) + '\n'); return; }
-  const { about, whenHidden, ...want } = expected; // whenHidden is checked by its own test
+  if (UPDATE) { writeFileSync(join(dir, 'expected.json'), JSON.stringify({ about: expected.about, ...actual, whenHidden: expected.whenHidden, changeRequests: expected.changeRequests }, null, 2) + '\n'); return; }
+  const { about, whenHidden, changeRequests, ...want } = expected; // these two are checked by their own tests
   assert.deepEqual(actual, want);
 }
 
@@ -153,6 +155,28 @@ test('happy page with categories hidden: their tests leave every bar and count, 
     page.$('showall').dispatch('click');
     const back = drawn(page, model, []);
     for (const k of keys) assert.deepEqual(back[k], expected[k], `after Show all: "${k}" differs from expected.json`);
+  }
+});
+
+// spec: FR-23; cat: logic
+test('happy page: picking cells, unticking tests and choosing a change builds the exact request expected.json lists', async () => {
+  const { expected, model } = scenario('happy');
+  const { generatedAt, cases } = expected.changeRequests;
+  assert.ok(cases.length, 'expected.json has changeRequests cases');
+  for (const c of cases) {
+    const page = openPage(render(model, { now: new Date(generatedAt) }));
+    const { cells } = drawn(page, model, []);
+    for (const { spec, column, cat } of c.click) {
+      const seg = (cells[`${spec}|${column}`] ?? []).find((s) => catOf(s) === cat);
+      assert.ok(seg, `no ${cat} segment drawn for ${spec} in "${column}"`);
+      seg.dispatch('click');
+    }
+    for (const key of c.untick ?? []) { const box = page.$(`tick-${key}`); box.checked = false; box.dispatch('change'); }
+    page.$('newcat').value = c.set.cat ?? '';
+    page.$('newtier').value = c.set.tier ?? '';
+    page.$('copyreq').dispatch('click');
+    await new Promise((r) => setTimeout(r, 0));
+    assert.equal(page.copied.at(-1), c.text.join('\n'), c.about);
   }
 });
 

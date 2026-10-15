@@ -69,6 +69,57 @@
       ]
     }
   ],
+  "changeRequests": {
+    "generatedAt": "2026-10-15T00:00:00.000Z",
+    "cases": [
+      {
+        "about": "One cell: the two UI tests of FR-1 in the UI tier, moved to input.",
+        "click": [{ "spec": "FR-1", "column": "UI", "cat": "ui" }],
+        "set": { "cat": "input" },
+        "text": [
+          "VisualTDD change request: \"Happy scenario\", generated 2026-10-15T00:00:00.000Z",
+          "Set cat to input on these 2 tests. Change only the tag lines of the tests listed.",
+          "- src/ui/login.test.js:6  \"shows the sign-in form\"",
+          "    now: spec: FR-1; cat: ui; tier: ui   (picked from FR-1 · UI · UI / Visual)",
+          "- src/ui/login.test.js:10  \"shows the error in red\"",
+          "    now: spec: FR-1; cat: ui; tier: ui   (picked from FR-1 · UI · UI / Visual)",
+          "If a test is no longer at that line, find it by name in the same file.",
+          "Then run --check, the tests, and rebuild the map."
+        ]
+      },
+      {
+        "about": "Two cells that share the two-spec test: it is listed once, with both its specs, and keeps the cell it was first picked from.",
+        "click": [{ "spec": "FR-2", "column": "Domain", "cat": "logic" }, { "spec": "FR-3", "column": "all tiers", "cat": "logic" }],
+        "set": { "tier": "data" },
+        "text": [
+          "VisualTDD change request: \"Happy scenario\", generated 2026-10-15T00:00:00.000Z",
+          "Set tier to data on these 2 tests. Change only the tag lines of the tests listed.",
+          "- src/domain/cart.spec.ts:3  \"adds up item prices\"",
+          "    now: spec: FR-2; cat: logic; tier: domain   (picked from FR-2 · Domain · Functional / Logic)",
+          "- src/domain/cart.spec.ts:6  \"applies a discount before payment\"",
+          "    now: spec: FR-2, FR-3; cat: logic; tier: domain   (picked from FR-2 · Domain · Functional / Logic)",
+          "If a test is no longer at that line, find it by name in the same file.",
+          "Then run --check, the tests, and rebuild the map."
+        ]
+      },
+      {
+        "about": "Three cells, one test unticked, and both a category and a tier set.",
+        "click": [{ "spec": "FR-3", "column": "Data", "cat": "data" }, { "spec": "FR-3", "column": "Data", "cat": "integ" }, { "spec": "SETUP", "column": "all tiers", "cat": "integ" }],
+        "untick": ["app/src/test/kotlin/data/OrderRepoTest.kt:8"],
+        "set": { "cat": "err", "tier": "domain" },
+        "text": [
+          "VisualTDD change request: \"Happy scenario\", generated 2026-10-15T00:00:00.000Z",
+          "Set cat to err and tier to domain on these 2 tests. Change only the tag lines of the tests listed.",
+          "- app/src/test/kotlin/data/OrderRepoTest.kt:4  \"saves the payment\"",
+          "    now: spec: FR-3; cat: data; tier: data   (picked from FR-3 · Data · Data / Persistence)",
+          "- app/src/test/kotlin/data/OrderRepoTest.kt:11  \"builds the test database\"",
+          "    now: spec: SETUP; cat: integ; tier: data   (picked from SETUP · all tiers · Integration / Contract)",
+          "If a test is no longer at that line, find it by name in the same file.",
+          "Then run --check, the tests, and rebuild the map."
+        ]
+      }
+    ]
+  },
   "tooltips": [
     { "spec": "FR-1", "column": "all tiers", "cat": "ui",
       "lines": ["FR-1 · all tiers · UI / Visual: 2 tests", "• shows the sign-in form", "• shows the error in red"] },

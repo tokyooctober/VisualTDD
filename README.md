@@ -244,6 +244,27 @@ Specs with no tests are still listed, with a dashed "no tests yet" bar, so gaps 
 - **In the dashboard:** click a category's swatch in the legend to pick a new colour. The bars change at once, for the theme you are viewing. The choice is saved in that browser only. The same colour-blind check runs as you pick and flags clashing categories. **Copy as config** copies the current colours as JSON. Paste it into `visualtdd.config.json` and rebuild to make them permanent for everyone. **Reset colors** goes back to the config.
 - **Hiding categories:** click a category's name in the legend to hide its tests, so you can focus on the others. Hidden tests leave every bar and count, and the ruler shrinks to fit what is left. The stats line shows how many tests are still shown. Click the name again, or **Show all categories**, to bring them back. Like colours, the choice is saved in that browser only.
 
+## Changing tags from the map
+
+The map is a static page, so it can't edit your tests. It can tell Claude exactly which tests to change.
+
+1. Click a bar segment to select its tests. Click more segments to add more, in any row or tier column. A test picked twice, for example one that cites two specs, is listed once.
+2. In the **Selected tests** panel, untick any test you want to leave alone, and choose a **New category**, a **New tier**, or both.
+3. Click **Copy change request** and paste the text to Claude in chat.
+
+```
+VisualTDD change request: "Happy scenario", generated 2026-10-15T00:00:00.000Z
+Set cat to input on these 2 tests. Change only the tag lines of the tests listed.
+- src/ui/login.test.js:6  "shows the sign-in form"
+    now: spec: FR-1; cat: ui; tier: ui   (picked from FR-1 · UI · UI / Visual)
+- src/ui/login.test.js:10  "shows the error in red"
+    now: spec: FR-1; cat: ui; tier: ui   (picked from FR-1 · UI · UI / Visual)
+If a test is no longer at that line, find it by name in the same file.
+Then run --check, the tests, and rebuild the map.
+```
+
+The [Claude skill](#claude-skill) knows this format. It changes only the `cat` or `tier` field of each listed test's tag, checks that each test is still where the map saw it, then runs `--check` and rebuilds the map. Without the skill, the request is plain enough to paste to Claude as it is.
+
 ## Tests
 
 ```sh
@@ -258,4 +279,4 @@ VisualTDD maps its own tests. `docs/spec.md` lists what the tool must do. Every 
 
 ## Claude skill
 
-`skill/SKILL.md` is a Claude skill. It tags a project's untagged tests, proposes the tags for review before writing anything, and builds the dashboard. To use it, copy the `skill/` folder into the project as `.claude/skills/visualtdd/`, or into `~/.claude/skills/visualtdd/` to have it in every project.
+`skill/SKILL.md` is a Claude skill. It tags a project's untagged tests, proposes the tags for review before writing anything, and builds the dashboard. It also applies change requests copied from the map (see [Changing tags from the map](#changing-tags-from-the-map)). To use it, copy the `skill/` folder into the project as `.claude/skills/visualtdd/`, or into `~/.claude/skills/visualtdd/` to have it in every project.

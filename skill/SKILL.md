@@ -45,6 +45,14 @@ The tool is two files, `visualtdd.mjs` and `template.html`, from https://github.
 
 The categories have default colours that were checked for colour-blind readers. The user can change them per category in the config (`color`, `colorDark`). They can also change them in the dashboard by clicking a legend swatch, then use **Copy as config** to make the change permanent. If the tool prints a colour warning, tell the user which two categories clash, and suggest a colour that clears it.
 
+## Applying a change request from the dashboard
+
+The user may paste a request copied from the map. It starts with `VisualTDD change request:`, says what to set (`cat to input`, `tier to data`, or both) and lists tests as `file:line  "name"`, each with a `now:` line giving its current spec, category and tier. The user built it on the map, so it is approved as written. Apply exactly that, and nothing else:
+
+1. For each listed test, open the file and check that the test starting at that line has the listed name. If it doesn't, the file has changed since the map was built, so find the test by name in the same file. If it can't be found, or the name matches more than one test, report it and skip it.
+2. Change only that test's tag line, the one directly above it (above any annotations or decorators). Replace the value of `cat` and/or `tier`, and keep the spec ids, the field order and any other fields. If the request sets a tier and the tag has no `tier:` field, add `; tier: <key>` at the end. Leave a tag without `tier:` alone when the request sets only `cat`. The `now:` line shows the tier the path gave, not necessarily a `tier:` field.
+3. Show a short table of each change (file:line, test, before, after), then run `--check` (it must exit 0), the project's tests, and rebuild the map.
+
 ## Do not
 
 - Do not add `--check` to CI or hooks unless the user asks.
