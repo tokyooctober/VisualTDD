@@ -64,7 +64,7 @@ These are `ui`, `domain` and `data`, the classic three tiers. The tier is read f
 
 | Command | What it does |
 |---|---|
-| `node visualtdd.mjs` | Writes the dashboard and prints a summary table. A missing or bad tag prints a `WARNING`, that test is left out of the page, and the exit code is 0. |
+| `node visualtdd.mjs` | Writes the dashboard, stamped with the time it was generated, and prints a summary table. A missing or bad tag prints a `WARNING`, that test is left out of the page, and the exit code is 0. |
 | `node visualtdd.mjs --check` | Checks the tags only. Exits 1 if any test is untagged or uses an unknown spec, category or tier. Use it in CI or a pre-commit hook. |
 | `node visualtdd.mjs --init` | Writes a starter `visualtdd.config.json`. It never overwrites an existing one. |
 | `node visualtdd.mjs --json` | Prints the model (rows, tests, categories, tiers) as JSON. |

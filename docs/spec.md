@@ -26,6 +26,7 @@ What VisualTDD must do. The tests in `test/` cite these ids in their tags, and `
 | FR-18 Edit colours in the page | In the dashboard, a legend swatch changes a category's colour for the current theme, saved in that browser, with a live clash warning. **Copy as config** and **Reset colors** work. |
 | FR-19 Light or dark page | The config's `theme` (`auto`, `light` or `dark`) sets the page theme; `auto` follows the system setting. A picker on the page switches the theme, and the viewer's choice is saved in that browser and wins over the config. |
 | FR-20 Bars by tier and category | For each spec row, the dashboard draws every valid test exactly once in the **All tiers** bar and once in its tier's column, as a segment of its category, in config order. Each segment shows its count, and its tooltip names the tests. An empty tier shows a dash, and an empty spec shows a dashed "no tests yet" bar. Badly tagged tests appear nowhere. Checked against the scenario data in `test/scenarios`. |
+| FR-21 Generation time | The page shows when it was generated, in the reader's local time, and keeps the exact UTC time (ISO 8601) in the page data and on the `<time>` element. |
 
 ## Non-functional requirements
 

@@ -278,3 +278,34 @@ test('with storage blocked, the theme picker still switches the page', () => {
   page.chooseTheme('dark');
   assert.equal(page.themeAttr(), 'dark');
 });
+
+// ---------- generation time ----------
+
+// spec: FR-21; cat: data
+test('the page records when it was generated: exact UTC in the data and on <time>, local time as the text', () => {
+  const dir = project({ 'a.test.js': ['// cat: logic', "test('x', () => {});"] });
+  const { model: m } = build(dir, { languages: ['js'], tiers: ['all'] });
+  rmSync(dir, { recursive: true });
+  const iso = '2026-10-15T05:03:00.000Z';
+  const html = render(m, { now: new Date(iso) });
+  assert.equal(dataOf(html).generatedAt, iso);
+  const stamp = openPage(html).$('generated');
+  assert.equal(stamp.tagName, 'TIME');
+  assert.equal(stamp.getAttribute('datetime'), iso);
+  assert.equal(stamp.title, iso);
+  const local = new Date(iso).toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZoneName: 'short' });
+  assert.equal(stamp.textContent, local);
+  assert.match(stamp.textContent, /2026/);
+  assert.equal(m.generatedAt, undefined, 'the model itself has no time, so --json output stays the same between runs');
+});
+
+// spec: FR-21, FR-13; cat: integ
+test('a real run stamps the page with the time it ran', () => {
+  const dir = scratch('kotlin');
+  const before = Date.now();
+  assert.equal(run([], dir).status, 0);
+  const after = Date.now();
+  const stamp = Date.parse(dataOf(readFileSync(join(dir, 'docs', 'test-map.html'), 'utf8')).generatedAt);
+  assert.ok(stamp >= before - 1000 && stamp <= after, `stamp ${new Date(stamp).toISOString()} is outside the run`);
+  rmSync(dir, { recursive: true });
+});

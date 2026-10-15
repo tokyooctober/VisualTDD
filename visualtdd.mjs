@@ -319,9 +319,10 @@ export function summary(model) {
   return lines.join('\n');
 }
 
-export function render(model) {
+/** The page for a model. `now` is the generation time shown on the page (a parameter so tests can fix it). */
+export function render(model, { now = new Date() } = {}) {
   const template = readFileSync(join(HERE, 'template.html'), 'utf8');
-  const json = JSON.stringify(model).replaceAll('<', '\\u003c');
+  const json = JSON.stringify({ ...model, generatedAt: now.toISOString() }).replaceAll('<', '\\u003c');
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
   return template
     .replace('<title>VisualTDD</title>', `<title>${esc(model.title)}</title>`)
