@@ -14,11 +14,11 @@ node tools/visualtdd/visualtdd.mjs --init      # writes visualtdd.config.json fr
 node tools/visualtdd/visualtdd.mjs             # writes docs/test-map.html and prints a summary
 ```
 
-Run it from the folder that holds `visualtdd.config.json`, or pass `--config path/to/visualtdd.config.json`.
+Run it from the folder that holds `visualtdd.config.json`, or pass `--config path/to/visualtdd.config.json`. See [Tag specification](#tag-specification) for how to tag tests and [Command line](#command-line) for every option.
 
-## Tagging a test
+## Tag specification
 
-Put one comment line directly above each test. If the test has annotations or decorators, the tag goes above those.
+Every test carries one tag: a single line comment directly above the test. It says which spec the test proves, what kind of test it is and, if needed, which tier it belongs to.
 
 ```js
 // spec: FR-3; cat: logic
@@ -37,11 +37,78 @@ fun theAppNeverSendsCredentials() { ... }
 def test_rejects_bad_names(value): ...
 ```
 
-| Field | Required | Meaning |
+```swift
+// spec: FR-2, FR-5; cat: data; tier: data
+func testSavesTheDraftWhenOffline() { ... }
+```
+
+### Syntax
+
+```
+tag     = indent comment field { ";" field }
+comment = "//" | "#"
+field   = key ":" value
+key     = "spec" | "cat" | "tier"
+value   = for spec: one or more spec ids separated by ","
+          for cat and tier: one key
+```
+
+- **Comment.** Use the language's line comment: `//` for JS/TS, Kotlin, Java, Swift and Go, and `#` for Python. Block comments (`/* ... */`) are not read.
+- **First word.** The comment must start with `spec`, `cat` or `tier`. `// note: x; spec: FR-1` is not a tag.
+- **Case.** Keys and values are case-sensitive. `Spec:` is not a tag, and `cat: Logic` is not the `logic` category.
+- **Order and spacing.** Fields can come in any order, and spaces around `:`, `;` and `,` are ignored. `//tier:data ;cat: logic;  spec: FR-1 ,FR-2` is valid.
+- **Repeats and extras.** If a field appears twice, the last one wins. Other keys, such as `owner: sam`, are ignored, so you can add notes after the fields.
+
+### Fields
+
+| Field | Required | Value |
 |---|---|---|
-| `spec` | yes, unless `specs.source` is `none` | One or more spec ids, separated by commas: `spec: NFR-3, FR-12`. A test that cites two specs appears in both rows. |
-| `cat` | yes | The kind of test, from `categories`. Choose by what the test *asserts*, and use one category per test. |
-| `tier` | only when the path does not decide it | The layer of code under test, from `tiers`. |
+| `spec` | yes, unless `specs.source` is `none` | One or more spec ids, separated by commas: `spec: NFR-3, FR-12`. Each id must be in the spec list or in `extraSpecs`. A test that cites two specs is drawn in both rows but counted once in the totals. |
+| `cat` | yes | One category key from `categories`, chosen by what the test *asserts*. See [Default categories](#default-categories). |
+| `tier` | only when the path does not decide it | One tier key from `tiers`. It overrides the path. |
+
+### Where the tag goes
+
+- On the line **directly above** the line that starts the test. A blank line or any code in between means the test has no tag.
+- If the test has annotations or decorators (lines starting with `@`, such as `@Test`, `@Ignore` or `@pytest.mark...`), the tag goes **above** them.
+- Indentation does not matter, so a tag inside a `describe` block or a test class works.
+
+Each language preset decides which files are test files and which line starts a test:
+
+| Preset | Test files | A test starts at | Name shown on the page |
+|---|---|---|---|
+| `js` | `.test` or `.spec` files ending in `.js`, `.ts`, `.jsx`, `.tsx`, `.mjs`, `.cjs`, `.mts` or `.cts` | `test(` or `it(`, including `.only`, `.skip` and `.todo` | The title string, as written |
+| `kotlin` | `*Test.kt`, `*Tests.kt` | `@Test` | The function name, as words |
+| `java` | `*Test.java`, `*Tests.java`, `*IT.java` | `@Test` | The method name, as words |
+| `python` | `test_*.py`, `*_test.py` | `def test...` or `async def test...` | The function name without `test_`, as words |
+| `swift` | `*Test.swift`, `*Tests.swift` | `func test...` or `@Test` | The function name without `test`, as words |
+| `go` | `*_test.go` | `func TestX(t *testing.T)` | The function name without `Test`, as words |
+
+"As words" means `savesTheFile`, `saves_the_file` and `test_savesTheFile` are all shown as `saves the file`. `describe(...)` blocks, helpers and setup functions are not tests, so they need no tag.
+
+### How the tier is decided
+
+1. The `tier` field in the tag, if there is one.
+2. Otherwise, the first rule in `tierFromPath` whose pattern matches the test file's path.
+3. Otherwise, `defaultTier`.
+4. Otherwise, if the config has only one tier, that tier.
+
+If none of these gives a tier, the test is reported.
+
+### Tag problems
+
+Each problem is reported with the file and line of the test. That test is left out of the dashboard and its counts. It isn't drawn in any row, not even the row of a valid spec it also cites.
+
+| Problem | Example message |
+|---|---|
+| No tag, or the tag is not directly above the test | `src/ui/login.test.js:12  no "// spec: ...; cat: ..." line above "shows the form"` |
+| No spec id, when there is a spec list | `src/ui/login.test.js:12  no spec id` |
+| Unknown category | `src/ui/login.test.js:12  unknown cat "speed" (use ui, input, logic, perf, data, integ, sec, err)` |
+| Unknown tier | `src/ui/login.test.js:12  unknown tier "cloud"` |
+| No tier can be decided | `lib/util.test.js:3  the path does not decide the tier; add "tier: ..." (ui, domain, data)` |
+| Unknown spec id | `src/ui/login.test.js:12  "FR-9" is not a known spec id` |
+
+A normal run prints these as a warning and still writes the page. `--check` treats them as errors.
 
 ### Default categories
 
@@ -60,14 +127,89 @@ def test_rejects_bad_names(value): ...
 
 These are `ui`, `domain` and `data`, the classic three tiers. The tier is read from the path (`/ui/`, `/domain/`, `/data/` and similar names) unless the tag gives one. Add your own tiers, such as `proxy` or `tooling`, in the config.
 
-## Commands
+## Command line
 
-| Command | What it does |
-|---|---|
-| `node visualtdd.mjs` | Writes the dashboard, stamped with the time it was generated, and prints a summary table. A missing or bad tag prints a `WARNING`, that test is left out of the page, and the exit code is 0. |
-| `node visualtdd.mjs --check` | Checks the tags only. Exits 1 if any test is untagged or uses an unknown spec, category or tier. Use it in CI or a pre-commit hook. |
-| `node visualtdd.mjs --init` | Writes a starter `visualtdd.config.json`. It never overwrites an existing one. |
-| `node visualtdd.mjs --json` | Prints the model (rows, tests, categories, tiers) as JSON. |
+```
+node visualtdd.mjs [--check | --init | --json] [--config <file>]
+```
+
+| Option | What it does | Writes the page | Exit code |
+|---|---|---|---|
+| *(none)* | Reads the tags, prints a summary table, and writes the dashboard, stamped with the time it was generated. A missing or bad tag prints a `WARNING`, and that test is left out. | yes | 0, even with tag problems |
+| `--check` | Checks the tags and prints the summary. Use it in CI or a pre-commit hook. | no | 1 if any test is untagged or uses an unknown spec, category or tier; otherwise 0 |
+| `--init` | Writes a starter `visualtdd.config.json` from the test files it finds. It never overwrites an existing one. | no | 1 if the config already exists |
+| `--json` | Prints the model (rows, tests, categories, tiers) as JSON. Warnings go to stderr, so stdout stays valid JSON. | no | 0 |
+| `--config <file>` | Uses another config file, whose folder is the project root. Combine it with any option above. | | |
+
+The config is `./visualtdd.config.json` unless `--config` names another. The run stops with a one-line message and exit code 1 if the config is missing, isn't valid JSON or has a mistake (such as an unknown language preset), or if a spec file is missing.
+
+### Examples
+
+Start in a project that has tests but no config:
+
+```sh
+node tools/visualtdd/visualtdd.mjs --init
+```
+
+```
+wrote visualtdd.config.json: python tests under tests. Edit "specs" and "tiers" to suit the project.
+```
+
+Build the dashboard and print the summary:
+
+```sh
+node tools/visualtdd/visualtdd.mjs
+```
+
+```
+3 tagged tests
+2 of 3 specs have at least one test; 1 have none
+
+                            ui    input logic perf  data  integ sec   err   total
+US-1 Import                 .     .     .     .     1     .     .     1     2
+US-2 Export                 .     .     .     .     .     1     .     .     1
+
+wrote docs/test-map.html
+```
+
+Find untagged or badly tagged tests. The exit code is 1 when there are any:
+
+```sh
+node tools/visualtdd/visualtdd.mjs --check
+```
+
+```
+1 problem(s):
+  src/domain/cart.spec.ts:7  no "// spec: ...; cat: ..." line above "has no tag"
+```
+
+Use a config in another folder, for example in a monorepo:
+
+```sh
+node tools/visualtdd/visualtdd.mjs --config apps/web/visualtdd.config.json
+```
+
+Fail a CI job when a tag is missing or wrong (a GitHub Actions step):
+
+```yaml
+- run: node tools/visualtdd/visualtdd.mjs --check
+```
+
+Save the model as JSON, then list the specs that have no tests:
+
+```sh
+node tools/visualtdd/visualtdd.mjs --json > test-map.json
+node -e "for (const r of require('./test-map.json').rows) if (!r.tests.length) console.log(r.id, r.name)"
+```
+
+Or add npm scripts, as this repo does:
+
+```json
+"scripts": {
+  "map": "node tools/visualtdd/visualtdd.mjs",
+  "map:check": "node tools/visualtdd/visualtdd.mjs --check"
+}
+```
 
 ## Config (`visualtdd.config.json`)
 
@@ -111,7 +253,7 @@ The suite runs the tool on the fixture projects in `test/fixtures` (JS, Kotlin, 
 
 `test/scenarios` holds scenario data: a **happy** project where every tag is valid, and a **negative** project where tags are wrong in every way found so far. Each has an `expected.json` that says exactly what the dashboard must draw. When you find a case the scenarios miss, add it to the data and to `expected.json`. See [test/scenarios/README.md](test/scenarios/README.md).
 
-VisualTDD maps its own tests. `docs/spec.md` lists what the tool must do. Every test in `test/engine.test.mjs`, `test/cli.test.mjs` and `test/page.test.mjs` is tagged with the spec it proves, and the file name decides the tier (engine, CLI or page). `npm run map` rebuilds [`docs/test-map.html`](docs/test-map.html), and `npm run map:check` checks the tags.
+VisualTDD maps its own tests. `docs/spec.md` lists what the tool must do. Every test in `test/engine.test.mjs`, `test/cli.test.mjs`, `test/page.test.mjs` and `test/scenarios.test.mjs` is tagged with the spec it proves, and the file name decides the tier (engine, CLI or page). `npm run map` rebuilds [`docs/test-map.html`](docs/test-map.html), and `npm run map:check` checks the tags.
 
 ## Claude skill
 
