@@ -16,6 +16,10 @@
   "stats": ["2 tests", "1 of 2 specs have a test", "1 have none"],
   "rulerMax": 5,
   "tierHeaders": [["UI", 2], ["Domain", 0], ["Data", 0]],
+  "names": {
+    "FR-1": ["a good test among bad ones", "tag above decorators is fine"],
+    "FR-2": []
+  },
   "rows": [
     { "group": "Functional requirements", "spec": "FR-1 Sign in", "total": 2,
       "all": ["ui 1", "logic 1"],

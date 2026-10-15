@@ -16,8 +16,11 @@ Each folder here is a small project with tagged tests, plus an `expected.json` t
 | `stats` | The counts above the chart. |
 | `rulerMax` | The last number on the ruler. Every bar track is this many tests wide. |
 | `tierHeaders` | Each tier column's name and its number of unique tests. |
+| `names` | For each spec row, every test name the page shows, read from the tooltips of its **All tiers** segments in drawing order. A segment of more than eight tests ends with `"+ n more"`. |
 | `rows` | One entry per spec row, in page order: its group heading, `spec` (id and name), `total`, the `all` bar, and the bar in each tier column. A bar is a list of `"category count"` segments in drawing order. `"—"` is an empty tier, and `"no tests yet"` with `tiers: null` is a spec with no tests. |
 | `tooltips` | Segments to hover, chosen by `spec`, `column` (`"all tiers"` or a tier name) and `cat`, with the exact tooltip `lines`. |
+
+Each requirement has its own test in `test/scenarios.test.mjs` that compares only its part of `expected.json`: for example, the FR-1 test checks `stats` and `names`, and the FR-5 test checks `rows` and `tierHeaders`. That way the scenarios show up in the **Page** column for each of those specs on VisualTDD's own map. A separate test per scenario compares the whole file.
 
 The runner also checks, for every segment, that its width is its count times one unit, and that `--check` fails exactly when `problems` is not empty.
 

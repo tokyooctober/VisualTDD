@@ -4,6 +4,14 @@
   "stats": ["19 tests", "4 of 5 specs have a test", "1 have none"],
   "rulerMax": 10,
   "tierHeaders": [["UI", 3], ["Domain", 12], ["Data", 4]],
+  "names": {
+    "FR-1": ["shows the sign-in form", "shows the error in red", "rejects an empty password", "never logs the password"],
+    "FR-2": ["adds up item prices", "applies a discount before payment", "reports a failed save"],
+    "FR-3": ["applies a discount before payment", "saves the payment", "sends the payment to the bank"],
+    "FR-4": [],
+    "NFR-1": ["large cart 1", "large cart 2", "large cart 3", "large cart 4", "large cart 5", "large cart 6", "large cart 7", "large cart 8", "+ 1 more"],
+    "SETUP": ["builds the test database"]
+  },
   "rows": [
     { "group": "Functional requirements", "spec": "FR-1 Sign in", "total": 4,
       "all": ["ui 2", "input 1", "sec 1"],
