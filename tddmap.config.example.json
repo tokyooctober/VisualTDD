@@ -1,0 +1,40 @@
+{
+  "title": "My project test map",
+  "output": "docs/test-map.html",
+  "testRoots": ["src", "tests"],
+  "languages": ["js", "python"],
+
+  "specs": {
+    "source": "markdown",
+    "files": ["docs/spec.md"],
+    "idPattern": "(?<prefix>N?FR)-(?<num>\\d+)",
+    "groups": { "FR": "Functional requirements", "NFR": "Non-functional requirements" }
+  },
+  "extraSpecs": {
+    "group": "Work with no requirement of its own",
+    "items": { "SETUP": "Project setup and tooling" }
+  },
+
+  "categories": [
+    "ui",
+    "input",
+    { "k": "logic", "color": "#1baf7a", "colorDark": "#199e70" },
+    "perf",
+    "data",
+    "integ",
+    "sec",
+    "err",
+    { "k": "a11y", "name": "Accessibility", "what": "Screen readers, keyboard, contrast", "color": "#5b6b7f", "colorDark": "#8a9bb0" }
+  ],
+
+  "tiers": [
+    { "k": "ui", "name": "UI", "what": "Screens and components" },
+    { "k": "domain", "name": "Domain", "what": "Rules and policies" },
+    { "k": "data", "name": "Data", "what": "Storage and external APIs" }
+  ],
+  "tierFromPath": [
+    { "pattern": "(^|/)(ui|components)/", "tier": "ui" },
+    { "pattern": "(^|/)(data|api|db)/", "tier": "data" }
+  ],
+  "defaultTier": "domain"
+}

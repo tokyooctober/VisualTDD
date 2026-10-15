@@ -1,0 +1,6 @@
+{
+  "title": "Python fixture",
+  "languages": ["python"],
+  "testRoots": ["tests"],
+  "tiers": ["all"]
+}

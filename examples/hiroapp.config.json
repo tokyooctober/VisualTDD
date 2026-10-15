@@ -1,0 +1,85 @@
+{
+  "root": "../../HiroApp",
+  "title": "Hiro-Kids test map",
+  "output": "../TDDmap/examples/hiroapp-test-map.html",
+  "testRoots": [
+    "proxy/test",
+    "shared/src"
+  ],
+  "languages": [
+    {
+      "preset": "js",
+      "files": "\\.test\\.mjs$",
+      "marker": "^test\\((['\"`])((?:\\\\.|(?!\\1).)*)\\1"
+    },
+    {
+      "preset": "kotlin",
+      "files": "/(commonTest|jvmTest|androidUnitTest|androidHostTest|iosTest)/.*Test\\.kt$",
+      "marker": "^\\s*@Test\\s*$"
+    }
+  ],
+  "specs": {
+    "source": "markdown",
+    "files": [
+      "docs/hiro-kids-spec.md"
+    ],
+    "idPattern": "(?<prefix>N?FR)-(?<num>\\d+)",
+    "groups": {
+      "FR": "Functional requirements",
+      "NFR": "Non-functional requirements"
+    }
+  },
+  "extraSpecs": {
+    "group": "Spec tasks with no requirement of their own",
+    "items": {
+      "T0": "Fixture recorder and scripts",
+      "T1": "Proxy plumbing",
+      "T2": "App skeleton demo screen"
+    }
+  },
+  "tiers": [
+    {
+      "k": "ui",
+      "name": "UI",
+      "what": "Compose screens, ViewModels"
+    },
+    {
+      "k": "domain",
+      "name": "Domain",
+      "what": "Rules and policies"
+    },
+    {
+      "k": "data",
+      "name": "Data",
+      "what": "Repository, store, location"
+    },
+    {
+      "k": "proxy",
+      "name": "Proxy",
+      "what": "Key, cache, rate limit"
+    },
+    {
+      "k": "tooling",
+      "name": "Tooling",
+      "what": "One-off scripts, fixture recorder"
+    }
+  ],
+  "tierFromPath": [
+    {
+      "pattern": "^proxy/test/",
+      "tier": "proxy"
+    },
+    {
+      "pattern": "/ui/",
+      "tier": "ui"
+    },
+    {
+      "pattern": "/domain/",
+      "tier": "domain"
+    },
+    {
+      "pattern": "/(data|db)/",
+      "tier": "data"
+    }
+  ]
+}

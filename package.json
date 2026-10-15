@@ -1,0 +1,12 @@
+{
+  "name": "tddmap",
+  "version": "0.1.0",
+  "description": "Tag tests with the spec, category and tier they cover; build a dashboard of test counts per spec.",
+  "type": "module",
+  "bin": { "tddmap": "tddmap.mjs" },
+  "engines": { "node": ">=22" },
+  "files": ["tddmap.mjs", "template.html"],
+  "scripts": { "test": "node --test \"test/*.test.mjs\"" },
+  "license": "UNLICENSED",
+  "private": true
+}

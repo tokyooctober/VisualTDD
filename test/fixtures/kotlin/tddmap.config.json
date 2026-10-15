@@ -1,0 +1,8 @@
+{
+  "title": "Kotlin fixture",
+  "languages": ["kotlin"],
+  "specs": { "source": "markdown", "files": ["spec.md"], "idPattern": "(?<prefix>US)-(?<num>\\d+)", "groups": { "US": "User stories" } },
+  "tiers": ["domain", "data"],
+  "tierFromPath": [{ "pattern": "/data/", "tier": "data" }],
+  "defaultTier": "domain"
+}

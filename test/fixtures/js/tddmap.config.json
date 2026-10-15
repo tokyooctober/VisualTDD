@@ -1,0 +1,10 @@
+{
+  "title": "JS fixture",
+  "languages": ["js"],
+  "testRoots": ["src"],
+  "specs": { "source": "list", "items": [
+    { "id": "LOGIN", "name": "Sign in", "group": "Account" },
+    { "id": "CART", "name": "Shopping cart", "group": "Shop" },
+    { "id": "PAY", "name": "Payment", "group": "Shop" }
+  ] }
+}
