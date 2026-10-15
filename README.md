@@ -242,6 +242,7 @@ Specs with no tests are still listed, with a dashed "no tests yet" bar, so gaps 
 
 - **In the config:** set `color` (light theme) and `colorDark` (dark theme) per category. The text printed on a bar is picked automatically for contrast, or set it with `text` and `textDark`. The default colours were chosen so that neighbouring categories stay distinguishable for colour-blind readers. When you change them, VisualTDD checks each neighbouring pair and prints a warning if two have become too close. The warning never fails the build.
 - **In the dashboard:** click a category's swatch in the legend to pick a new colour. The bars change at once, for the theme you are viewing. The choice is saved in that browser only. The same colour-blind check runs as you pick and flags clashing categories. **Copy as config** copies the current colours as JSON. Paste it into `visualtdd.config.json` and rebuild to make them permanent for everyone. **Reset colors** goes back to the config.
+- **Hiding categories:** click a category's name in the legend to hide its tests, so you can focus on the others. Hidden tests leave every bar and count, and the ruler shrinks to fit what is left. The stats line shows how many tests are still shown. Click the name again, or **Show all categories**, to bring them back. Like colours, the choice is saved in that browser only.
 
 ## Tests
 

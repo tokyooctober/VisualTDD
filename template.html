@@ -37,6 +37,11 @@ p { margin: 0; color: var(--ink2); max-width: 68ch; }
 .lg input[type=color]::-webkit-color-swatch { border: 0; border-radius: 4px; }
 .lg input[type=color]::-moz-color-swatch { border: 0; border-radius: 4px; }
 .lg input[type=color]:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.lg .name { font: inherit; font-size: 12px; color: inherit; background: none; border: 0; padding: 2px 0; text-align: left; cursor: pointer; min-width: 0; }
+.lg .name:hover { color: var(--ink); text-decoration: underline; }
+.lg .name:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: 3px; }
+.lg.off .name { text-decoration: line-through; color: var(--muted); }
+.lg.off input[type=color] { opacity: 0.35; }
 .flag { font-size: 11px; font-weight: 600; color: var(--warn); background: var(--warn-bg); border-radius: 999px; padding: 0 7px; }
 .tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; font-size: 12px; color: var(--ink2); }
 .tools button { font: inherit; font-size: 12px; padding: 5px 12px; border-radius: 7px; border: 1px solid var(--axis); background: transparent; color: var(--ink); cursor: pointer; }
@@ -103,7 +108,8 @@ code { font-size: 12px; background: var(--chip); padding: 1px 5px; border-radius
     <div class="stats" id="stats"></div>
     <div class="legend" id="legend"></div>
     <div class="tools">
-      <span>Click a colour to change it. Changes stay in this browser only.</span>
+      <span>Click a colour to change it, or a name to hide its tests. Changes stay in this browser only.</span>
+      <button type="button" id="showall" hidden>Show all categories</button>
       <button type="button" id="copy">Copy as config</button>
       <button type="button" id="reset">Reset colors</button>
       <span id="status" role="status"></span>
@@ -168,7 +174,8 @@ function applyColors() {
 }
 function checkClashes() {
   var d = isDark();
-  var list = CATS.map(function (c) { return { k: c.k, name: c.name, hex: colorOf(c, d) }; });
+  /* Only the shown categories sit next to each other in the bars, so only they can clash. */
+  var list = CATS.filter(shown).map(function (c) { return { k: c.k, name: c.name, hex: colorOf(c, d) }; });
   var found = COLORS.clashes(list);
   var bad = {};
   found.forEach(function (x) { bad[x.a.k] = bad[x.b.k] = true; });
@@ -191,19 +198,41 @@ function bindTip(node, text) {
   node.setAttribute('aria-label', text.replace(/\n/g, ', '));
 }
 
+/* ---- hidden categories: per browser; a hidden category's tests are left out of every bar and count below ---- */
+var HIDE_STORE = 'visualtdd-hidden:' + location.pathname + ':' + DATA.title;
+var hidden = {};
+try { (JSON.parse(localStorage.getItem(HIDE_STORE) || '[]') || []).forEach(function (k) { hidden[k] = true; }); } catch (e) { hidden = {}; }
+function saveHidden() {
+  var keys = CATS.filter(function (c) { return hidden[c.k]; }).map(function (c) { return c.k; });
+  try { if (keys.length) localStorage.setItem(HIDE_STORE, JSON.stringify(keys)); else localStorage.removeItem(HIDE_STORE); } catch (e) { /* storage blocked: lasts until reload */ }
+}
+function shown(c) { return !hidden[c.k]; }
+function visible(tests) { return tests.filter(function (x) { return !hidden[x.cat]; }); }
+
 /* ---- stats and legend ---- */
 var specRows = ROWS.filter(function (r) { return r.kind === 'spec'; });
 var covered = specRows.filter(function (r) { return r.tests.length; });
-document.getElementById('stats').innerHTML = DATA.specMode === 'none'
-  ? '<span><b>' + DATA.uniqueTests + '</b> tests</span><span><b>' + ROWS.length + '</b> test folders</span>'
-  : '<span><b>' + DATA.uniqueTests + '</b> tests</span>' +
-    '<span><b>' + covered.length + '</b> of <b>' + specRows.length + '</b> specs have a test</span>' +
-    '<span><b>' + (specRows.length - covered.length) + '</b> have none</span>';
+function drawStats() {
+  var html = DATA.specMode === 'none'
+    ? '<span><b>' + DATA.uniqueTests + '</b> tests</span><span><b>' + ROWS.length + '</b> test folders</span>'
+    : '<span><b>' + DATA.uniqueTests + '</b> tests</span>' +
+      '<span><b>' + covered.length + '</b> of <b>' + specRows.length + '</b> specs have a test</span>' +
+      '<span><b>' + (specRows.length - covered.length) + '</b> have none</span>';
+  var off = CATS.filter(function (c) { return hidden[c.k]; }).length;
+  if (off) {
+    var seen = {};
+    ROWS.forEach(function (r) { visible(r.tests).forEach(function (x) { seen[x.file + ':' + x.line] = true; }); });
+    html += '<span><b>' + Object.keys(seen).length + '</b> shown, <b>' + off + '</b> ' + (off === 1 ? 'category' : 'categories') + ' hidden</span>';
+  }
+  document.getElementById('stats').innerHTML = html;
+}
 
+var legendItems = {};
 CATS.forEach(function (c) {
-  var d = el('label', 'lg'); d.title = c.what;
+  var d = legendItems[c.k] = el('div', 'lg'); d.title = c.what;
   d.innerHTML = '<input type="color" id="pick-' + esc(c.k) + '" aria-label="Colour for ' + esc(c.name) + '">' +
-    '<span>' + esc(c.name) + '</span><span class="flag" id="flag-' + esc(c.k) + '" hidden>check</span>';
+    '<button type="button" class="name" id="hide-' + esc(c.k) + '" aria-pressed="true">' + esc(c.name) + '</button>' +
+    '<span class="flag" id="flag-' + esc(c.k) + '" hidden>check</span>';
   document.getElementById('legend').appendChild(d);
   d.querySelector('input').addEventListener('input', function (e) {
     var u = user[c.k] = user[c.k] || {};
@@ -211,6 +240,22 @@ CATS.forEach(function (c) {
     save(); applyColors();
     document.getElementById('status').textContent = '';
   });
+  document.getElementById('hide-' + c.k).addEventListener('click', function () {
+    hidden[c.k] = !hidden[c.k];
+    saveHidden(); refresh();
+  });
+});
+function syncLegend() {
+  CATS.forEach(function (c) {
+    var off = !!hidden[c.k], b = document.getElementById('hide-' + c.k);
+    legendItems[c.k].className = 'lg' + (off ? ' off' : '');
+    b.setAttribute('aria-pressed', off ? 'false' : 'true');
+    b.title = (off ? 'Hidden. Click to show the ' : 'Click to hide the ') + c.name + ' tests';
+  });
+  document.getElementById('showall').hidden = !CATS.some(function (c) { return hidden[c.k]; });
+}
+document.getElementById('showall').addEventListener('click', function () {
+  hidden = {}; saveHidden(); refresh();
 });
 document.getElementById('reset').addEventListener('click', function () {
   user = {}; try { localStorage.removeItem(STORE); } catch (e) {}
@@ -270,49 +315,54 @@ function makeBar(row, items, where) {
   return bar;
 }
 
+/* The table is redrawn whenever a category is hidden or shown; only the shown tests are drawn and counted. */
 var G = document.getElementById('G');
-var maxTotal = Math.max.apply(null, ROWS.map(function (r) { return r.tests.length; }).concat([5]));
-var trackW = Math.ceil(maxTotal / 5) * 5 * UNIT;
-/* Unique tests per tier: a test that cites two specs sits in two rows but is counted once here. */
-var tierTotals = TIERS.map(function (t) {
-  var seen = {};
-  ROWS.forEach(function (r) { r.tests.forEach(function (x) { if (x.tier === t.k) seen[x.file + ':' + x.line] = true; }); });
-  return Object.keys(seen).length;
-});
-var ruler = '<div class="ruler" style="width:' + trackW + 'px">';
-for (var v = 0; v <= trackW / UNIT; v += 5) ruler += '<span style="left:' + (v * UNIT) + 'px">' + v + '</span>';
-ruler += '</div>';
-var cols = SHOW_TIERS ? TIERS.length + 2 : 2;
-G.innerHTML = '<tr><th>' + (DATA.specMode === 'none' ? 'Folder' : 'Spec') + '</th><th>' + (SHOW_TIERS ? 'All tiers' : 'Tests') + ruler + '</th>' +
-  (SHOW_TIERS ? TIERS.map(function (t, i) { return '<th' + (i === 0 ? ' class="sep"' : '') + '>' + esc(t.name) + ' · ' + tierTotals[i] + '<small>' + esc(t.what) + '</small></th>'; }).join('') : '') + '</tr>';
+function drawTable() {
+  var maxTotal = Math.max.apply(null, ROWS.map(function (r) { return visible(r.tests).length; }).concat([5]));
+  var trackW = Math.ceil(maxTotal / 5) * 5 * UNIT;
+  /* Unique tests per tier: a test that cites two specs sits in two rows but is counted once here. */
+  var tierTotals = TIERS.map(function (t) {
+    var seen = {};
+    ROWS.forEach(function (r) { visible(r.tests).forEach(function (x) { if (x.tier === t.k) seen[x.file + ':' + x.line] = true; }); });
+    return Object.keys(seen).length;
+  });
+  var ruler = '<div class="ruler" style="width:' + trackW + 'px">';
+  for (var v = 0; v <= trackW / UNIT; v += 5) ruler += '<span style="left:' + (v * UNIT) + 'px">' + v + '</span>';
+  ruler += '</div>';
+  var cols = SHOW_TIERS ? TIERS.length + 2 : 2;
+  G.innerHTML = '<tr><th>' + (DATA.specMode === 'none' ? 'Folder' : 'Spec') + '</th><th>' + (SHOW_TIERS ? 'All tiers' : 'Tests') + ruler + '</th>' +
+    (SHOW_TIERS ? TIERS.map(function (t, i) { return '<th' + (i === 0 ? ' class="sep"' : '') + '>' + esc(t.name) + ' · ' + tierTotals[i] + '<small>' + esc(t.what) + '</small></th>'; }).join('') : '') + '</tr>';
 
-var lastGroup = null;
-ROWS.forEach(function (r) {
-  if (r.group !== lastGroup) {
-    var gr = el('tr', 'grp'); var gtd = el('td', '', esc(r.group)); gtd.colSpan = cols; gr.appendChild(gtd); G.appendChild(gr); lastGroup = r.group;
-  }
-  var tr = el('tr'), tot = r.tests.length;
-  tr.appendChild(el('td', '', '<span class="sp"><b>' + esc(r.id) + '</b> ' + esc(r.name) + '</span>'));
-  var tdT = el('td'), row = el('div', 'row');
-  if (!tot) row.appendChild(el('span', 'gapbar', 'no tests yet'));
-  else {
-    var track = el('div', 'track'); track.style.width = trackW + 'px'; track.style.setProperty('--five', (5 * UNIT) + 'px');
-    track.appendChild(makeBar(r, r.tests, SHOW_TIERS ? 'all tiers' : 'tests')); row.appendChild(track); row.appendChild(el('span', 'n', tot));
-  }
-  tdT.appendChild(row); tr.appendChild(tdT);
-  if (SHOW_TIERS) {
-    if (!tot) { var td0 = el('td', 'sep'); td0.colSpan = TIERS.length; tr.appendChild(td0); }
-    else TIERS.forEach(function (t, i) {
-      var items = r.tests.filter(function (x) { return x.tier === t.k; });
-      var td = el('td', i === 0 ? 'sep' : '');
-      if (!items.length) { td.className += ' zero'; td.textContent = '—'; }
-      else td.appendChild(makeBar(r, items, t.name));
-      tr.appendChild(td);
-    });
-  }
-  G.appendChild(tr);
-});
-applyColors();
+  var lastGroup = null;
+  ROWS.forEach(function (r) {
+    if (r.group !== lastGroup) {
+      var gr = el('tr', 'grp'); var gtd = el('td', '', esc(r.group)); gtd.colSpan = cols; gr.appendChild(gtd); G.appendChild(gr); lastGroup = r.group;
+    }
+    /* A spec with no tests at all keeps its "no tests yet" bar; one whose tests are all hidden shows an empty track and 0. */
+    var tr = el('tr'), all = visible(r.tests), tot = all.length;
+    tr.appendChild(el('td', '', '<span class="sp"><b>' + esc(r.id) + '</b> ' + esc(r.name) + '</span>'));
+    var tdT = el('td'), row = el('div', 'row');
+    if (!r.tests.length) row.appendChild(el('span', 'gapbar', 'no tests yet'));
+    else {
+      var track = el('div', 'track'); track.style.width = trackW + 'px'; track.style.setProperty('--five', (5 * UNIT) + 'px');
+      track.appendChild(makeBar(r, all, SHOW_TIERS ? 'all tiers' : 'tests')); row.appendChild(track); row.appendChild(el('span', 'n', tot));
+    }
+    tdT.appendChild(row); tr.appendChild(tdT);
+    if (SHOW_TIERS) {
+      if (!r.tests.length) { var td0 = el('td', 'sep'); td0.colSpan = TIERS.length; tr.appendChild(td0); }
+      else TIERS.forEach(function (t, i) {
+        var items = all.filter(function (x) { return x.tier === t.k; });
+        var td = el('td', i === 0 ? 'sep' : '');
+        if (!items.length) { td.className += ' zero'; td.textContent = '—'; }
+        else td.appendChild(makeBar(r, items, t.name));
+        tr.appendChild(td);
+      });
+    }
+    G.appendChild(tr);
+  });
+}
+function refresh() { drawStats(); syncLegend(); drawTable(); applyColors(); }
+refresh();
 </script>
 </body>
 </html>

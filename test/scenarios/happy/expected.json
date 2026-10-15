@@ -32,6 +32,43 @@
       "all": ["integ 1"],
       "tiers": { "UI": "—", "Domain": "—", "Data": ["integ 1"] } }
   ],
+  "whenHidden": [
+    {
+      "hide": ["ui", "perf"],
+      "about": "UI / Visual and Performance hidden: their 11 tests leave every bar and count. NFR-1 has only perf tests, so it shows an empty track and 0, not the 'no tests yet' bar.",
+      "stats": ["19 tests", "4 of 5 specs have a test", "1 have none", "8 shown, 2 categories hidden"],
+      "rulerMax": 5,
+      "tierHeaders": [["UI", 1], ["Domain", 3], ["Data", 4]],
+      "names": {
+        "FR-1": ["rejects an empty password", "never logs the password"],
+        "FR-2": ["adds up item prices", "applies a discount before payment", "reports a failed save"],
+        "FR-3": ["applies a discount before payment", "saves the payment", "sends the payment to the bank"],
+        "FR-4": [],
+        "NFR-1": [],
+        "SETUP": ["builds the test database"]
+      },
+      "rows": [
+        { "group": "Functional requirements", "spec": "FR-1 Sign in", "total": 2,
+          "all": ["input 1", "sec 1"],
+          "tiers": { "UI": ["input 1"], "Domain": ["sec 1"], "Data": "—" } },
+        { "group": "Functional requirements", "spec": "FR-2 Cart", "total": 3,
+          "all": ["logic 2", "err 1"],
+          "tiers": { "UI": "—", "Domain": ["logic 2"], "Data": ["err 1"] } },
+        { "group": "Functional requirements", "spec": "FR-3 Payment", "total": 3,
+          "all": ["logic 1", "data 1", "integ 1"],
+          "tiers": { "UI": "—", "Domain": ["logic 1"], "Data": ["data 1", "integ 1"] } },
+        { "group": "Functional requirements", "spec": "FR-4 Export", "total": 0,
+          "all": "no tests yet",
+          "tiers": null },
+        { "group": "Non-functional requirements", "spec": "NFR-1 Speed", "total": 0,
+          "all": [],
+          "tiers": { "UI": "—", "Domain": "—", "Data": "—" } },
+        { "group": "Other work", "spec": "SETUP Test setup", "total": 1,
+          "all": ["integ 1"],
+          "tiers": { "UI": "—", "Domain": "—", "Data": ["integ 1"] } }
+      ]
+    }
+  ],
   "tooltips": [
     { "spec": "FR-1", "column": "all tiers", "cat": "ui",
       "lines": ["FR-1 · all tiers · UI / Visual: 2 tests", "• shows the sign-in form", "• shows the error in red"] },

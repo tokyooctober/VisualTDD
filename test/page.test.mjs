@@ -309,3 +309,64 @@ test('a real run stamps the page with the time it ran', () => {
   assert.ok(stamp >= before - 1000 && stamp <= after, `stamp ${new Date(stamp).toISOString()} is outside the run`);
   rmSync(dir, { recursive: true });
 });
+
+// ---------- hiding categories ----------
+
+const hideKey = 'visualtdd-hidden:/docs/test-map.html:Colours';
+
+// spec: FR-22; cat: ui
+test('clicking a legend name hides that category: the item is struck out, marked not pressed, and Show all appears', () => {
+  const { page } = defaultPage();
+  assert.equal(page.$('showall').hidden, true, 'nothing hidden, so no Show all');
+  assert.equal(page.$('hide-ui').getAttribute('aria-pressed'), 'true');
+  page.$('hide-ui').dispatch('click');
+  assert.equal(page.$('hide-ui').getAttribute('aria-pressed'), 'false');
+  assert.match(page.$('hide-ui').title, /^Hidden\. Click to show the UI \/ Visual tests$/);
+  assert.equal(page.$('showall').hidden, false);
+  assert.match(page.$('stats').innerHTML, /<b>1<\/b> shown, <b>1<\/b> category hidden/);
+  page.$('hide-ui').dispatch('click');
+  assert.equal(page.$('hide-ui').getAttribute('aria-pressed'), 'true', 'a second click shows it again');
+  assert.equal(page.$('showall').hidden, true);
+  assert.doesNotMatch(page.$('stats').innerHTML, /hidden/);
+});
+
+// spec: FR-22; cat: data
+test('hidden categories are saved in this browser and stay hidden when the page is opened again', () => {
+  const { m, page } = defaultPage();
+  page.$('hide-logic').dispatch('click');
+  page.$('hide-sec').dispatch('click');
+  assert.deepEqual(JSON.parse(page.storage.get(hideKey)), ['logic', 'sec']);
+  const again = openPage(render(m), { storage: page.storage });
+  assert.equal(again.$('hide-logic').getAttribute('aria-pressed'), 'false');
+  assert.equal(again.$('hide-sec').getAttribute('aria-pressed'), 'false');
+  assert.match(again.$('stats').innerHTML, /<b>0<\/b> shown, <b>2<\/b> categories hidden/);
+  again.$('showall').dispatch('click');
+  assert.equal(page.storage.has(hideKey), false, 'Show all clears the saved list');
+  assert.equal(again.$('hide-logic').getAttribute('aria-pressed'), 'true');
+});
+
+// spec: FR-22, FR-18; cat: ui
+test('a hidden category is left out of the clash check, since it is no longer drawn next to anything', () => {
+  const { m, page } = defaultPage();
+  const [first, second] = m.categories;
+  page.pick(second.k, first.color);
+  assert.equal(page.$('clash').hidden, false);
+  page.$(`hide-${second.k}`).dispatch('click');
+  assert.equal(page.$('clash').hidden, true);
+  assert.equal(page.$(`flag-${first.k}`).hidden, true);
+  page.$(`hide-${second.k}`).dispatch('click');
+  assert.equal(page.$('clash').hidden, false, 'showing it again brings the warning back');
+});
+
+// spec: FR-22; cat: err
+test('a broken saved list or blocked storage shows every category, and hiding still works', () => {
+  const { m } = defaultPage();
+  const broken = openPage(render(m), { storage: new Map([[hideKey, '{not json']]) });
+  assert.equal(broken.$('hide-ui').getAttribute('aria-pressed'), 'true');
+  const blocked = new Map();
+  blocked.get = () => { throw new Error('SecurityError'); };
+  blocked.set = () => { throw new Error('SecurityError'); };
+  const page = openPage(render(m), { storage: blocked });
+  page.$('hide-ui').dispatch('click');
+  assert.equal(page.$('hide-ui').getAttribute('aria-pressed'), 'false');
+});

@@ -27,6 +27,7 @@ What VisualTDD must do. The tests in `test/` cite these ids in their tags, and `
 | FR-19 Light or dark page | The config's `theme` (`auto`, `light` or `dark`) sets the page theme; `auto` follows the system setting. A picker on the page switches the theme, and the viewer's choice is saved in that browser and wins over the config. |
 | FR-20 Bars by tier and category | For each spec row, the dashboard draws every valid test exactly once in the **All tiers** bar and once in its tier's column, as a segment of its category, in config order. Each segment shows its count, and its tooltip names the tests. An empty tier shows a dash, and an empty spec shows a dashed "no tests yet" bar. Badly tagged tests appear nowhere. Checked against the scenario data in `test/scenarios`. |
 | FR-21 Generation time | The page shows when it was generated, in the reader's local time, and keeps the exact UTC time (ISO 8601) in the page data and on the `<time>` element. |
+| FR-22 Hide categories | Clicking a category's name in the legend hides that category, and clicking it again shows it. A hidden category's tests are left out of every bar, row total, tier total and the ruler, and out of the colour clash check. The stats line says how many tests are shown and how many categories are hidden. A spec whose tests are all hidden shows an empty bar and 0, not "no tests yet". **Show all categories** brings them all back. The choice is saved in that browser. |
 
 ## Non-functional requirements
 

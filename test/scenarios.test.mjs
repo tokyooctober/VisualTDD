@@ -88,7 +88,7 @@ function scenario(name) {
   assert.deepEqual(configProblems, []);
   const { model, problems } = buildModel(cfg);
   const actual = { problems, ...drawn(openPage(render(model)), model, expected.tooltips ?? []) };
-  const result = { dir, expected, actual };
+  const result = { dir, expected, actual, model };
   cache.set(name, result);
   return result;
 }
@@ -102,8 +102,8 @@ function check(name, keys) {
 /** Compares the whole page with expected.json, or rewrites expected.json in update mode. */
 function checkAll(name) {
   const { dir, expected, actual } = scenario(name);
-  if (UPDATE) { writeFileSync(join(dir, 'expected.json'), JSON.stringify({ about: expected.about, ...actual }, null, 2) + '\n'); return; }
-  const { about, ...want } = expected;
+  if (UPDATE) { writeFileSync(join(dir, 'expected.json'), JSON.stringify({ about: expected.about, ...actual, whenHidden: expected.whenHidden }, null, 2) + '\n'); return; }
+  const { about, whenHidden, ...want } = expected; // whenHidden is checked by its own test
   assert.deepEqual(actual, want);
 }
 
@@ -138,6 +138,22 @@ test("happy page: rows follow the spec file's groups and numbers, with only the 
   const { expected, actual } = scenario('happy');
   assert.deepEqual(order(actual.rows), order(expected.rows));
   assert.ok(!order(actual.rows).some((r) => r.includes('SPIKE')), 'an extra spec no test cites gets no row');
+});
+
+// spec: FR-22; cat: ui
+test('happy page with categories hidden: their tests leave every bar and count, and Show all brings them back', () => {
+  const { expected, model } = scenario('happy');
+  assert.ok(expected.whenHidden?.length, 'expected.json has whenHidden cases');
+  const keys = ['stats', 'rulerMax', 'tierHeaders', 'names', 'rows'];
+  for (const { hide, about, ...want } of expected.whenHidden) {
+    const page = openPage(render(model));
+    for (const k of hide) page.$(`hide-${k}`).dispatch('click');
+    const got = drawn(page, model, []);
+    for (const k of keys) assert.deepEqual(got[k], want[k], `hiding ${hide.join(', ')}: "${k}" differs from expected.json`);
+    page.$('showall').dispatch('click');
+    const back = drawn(page, model, []);
+    for (const k of keys) assert.deepEqual(back[k], expected[k], `after Show all: "${k}" differs from expected.json`);
+  }
 });
 
 // spec: FR-20, NFR-3; cat: ui
