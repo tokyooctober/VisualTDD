@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { render, loadConfig } from '../visualtdd.mjs';
 import { REPO, run, scratch, project, build, openPage, dataOf } from './helpers.mjs';
 
-// spec: FR-11; cat: data
+// spec: FR-11; cat: ui
 test('the page carries the model, the title and the colour checks, and has no placeholders left', () => {
   const dir = scratch('kotlin');
   run([], dir);
