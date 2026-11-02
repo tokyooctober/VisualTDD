@@ -211,7 +211,7 @@ export function scanTests(cfg) {
     const lang = cfg.languages.find((l) => l.filesRe.test(rel));
     if (!lang) continue;
     seen.add(rel);
-    const lines = readFileSync(file, 'utf8').split('\n');
+    const lines = readFileSync(file, 'utf8').split(/\r?\n/);
     let usedUpTo = -1; // a line already read as the name of an earlier test (Swift "@Test" then "func testX")
     lines.forEach((line, i) => {
       if (i <= usedUpTo) return;
@@ -266,7 +266,7 @@ export function readSpecs(cfg) {
   const specs = [];
   let n = 0;
   for (const f of [].concat(s.files ?? s.file ?? [])) {
-    for (const line of readFileSync(join(cfg.root, f), 'utf8').split('\n')) {
+    for (const line of readFileSync(join(cfg.root, f), 'utf8').split(/\r?\n/)) {
       const m = line.match(row);
       if (!m || specs.some((x) => x.id === m.groups.id)) continue;
       const prefix = m.groups.prefix ?? '';

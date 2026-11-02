@@ -15,7 +15,7 @@ node tools/visualtdd/visualtdd.mjs --init      # writes visualtdd.config.json fr
 node tools/visualtdd/visualtdd.mjs             # writes docs/test-map.html and prints a summary
 ```
 
-Run it from the folder that holds `visualtdd.config.json`, or pass `--config path/to/visualtdd.config.json`. See [Tag specification](#tag-specification) for how to tag tests and [Command line](#command-line) for every option.
+Run it from the folder that holds `visualtdd.config.json`, or pass `--config path/to/visualtdd.config.json`. To tag a project's existing tests, follow [Tagging an existing project](#tagging-an-existing-project). See [Tag specification](#tag-specification) for the tag format and [Command line](#command-line) for every option.
 
 ## Tag specification
 
@@ -135,6 +135,36 @@ These are `ui`, `domain` and `data`, the classic three tiers. Unless the tag giv
 | `data` | `data`, `db`, `repository`, `repositories`, `storage`, `api`, `infra` |
 
 Add your own tiers, such as `proxy` or `tooling`, in the config. Setting `tiers` replaces these rules, so give your own `tierFromPath` too.
+
+## Tagging an existing project
+
+This is the procedure for a person, or a Claude Code session, tagging a project whose tests have no tags yet. (The [Claude skill](#claude-skill) carries the same procedure.)
+
+<!-- sync:tagging:start -->
+1. **Install.** Copy `visualtdd.mjs` and `template.html` from https://github.com/tokyooctober/VisualTDD into the project, for example into `tools/visualtdd/`. Ask the owner before adding files to their repo.
+2. **Create the config.** Run `node tools/visualtdd/visualtdd.mjs --init`, then edit `visualtdd.config.json`:
+   - `specs`: find where the project's requirements live. Use a Markdown spec that has ids (`"source": "markdown"`), a list in the config (`"source": "list"`), or `none` if the project has no spec. Never invent spec ids.
+   - `tiers` and `tierFromPath`: match the project's real layers and folder names. Add a tier such as `proxy` or `tooling` only if the code has one.
+3. **List the untagged tests.** Run `node tools/visualtdd/visualtdd.mjs --check`. Every untagged test is listed with its file and line.
+4. **Propose the tags before writing any.** Read each test, including what it asserts, and choose `spec`, `cat` and, where the path does not decide it, `tier`. Show the choices in a table (file:line, test name, spec, cat, tier, one-line reason), mark the uncertain ones, and wait for the owner to approve or correct them.
+5. **Write the approved tags.** Insert one tag line above each test (above any annotations or decorators), matching the file's indentation. Change nothing else in the test files.
+6. **Check and build.** Run `--check`, which must exit 0. Run the tool without options to write the dashboard. Run the project's own tests to confirm nothing broke. Report the specs with no tests and any empty tiers.
+
+### Choosing the category, spec and tier
+
+- **Choose the category by what the test asserts, not by what it touches.** "Submitting an empty name shows an error" asserts input handling, so it is `input`, even though it goes through the UI. "Within 300 m" is a business rule, so it is `logic`, not `input`.
+- **Use these tie-breakers:**
+  - `input`: only what a user or caller supplies (valid, invalid and boundary values) and the messages for it.
+  - `err`: failures and recovery (offline, timeouts, 4xx and 5xx, retries, empty and error states).
+  - `sec`: secrets, permissions, privacy (what is logged or sent) and what is reachable.
+  - `integ`: a contract with another component or service (request shape, response parsing, recorded fixtures).
+  - `ui`: visual and interaction checks (colours, layout, navigation, accessibility).
+- **Cite the requirement the test proves.** If no spec covers the test, say so in the proposal. Use an `extraSpecs` id (such as a task id) only with the owner's agreement. A test may cite two specs only if it truly proves both.
+- **Choose the tier by where the code under test lives, not where the test file sits.** Tests of build scripts or one-off tools belong to a `tooling` tier, not to the tier of the feature they serve.
+- **When unsure between two categories,** pick one, give the reason in the proposal table and mark it for the owner to confirm.
+
+Do not add `--check` to CI or hooks unless the owner asks, and do not edit the generated dashboard: change the config or the template and rebuild.
+<!-- sync:tagging:end -->
 
 ## Command line
 

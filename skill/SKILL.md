@@ -17,29 +17,31 @@ The tool is two files, `visualtdd.mjs` and `template.html`, from https://github.
 
 ## Workflow
 
-1. **Install, if the project does not have it.** Copy `visualtdd.mjs` and `template.html` into `tools/visualtdd/` (or wherever the user prefers). Check with the user before adding files to their repo.
-2. **Config.** If there is no `visualtdd.config.json`, run `node tools/visualtdd/visualtdd.mjs --init`, then review what it wrote with the user:
-   - `specs`: ask where the project's requirements live. Use a Markdown spec with ids (`source: "markdown"` plus `idPattern`), a list in the config, or `none`. Do not invent spec ids.
-   - `tiers` and `tierFromPath`: match the project's real layers and folder names. Add tiers such as `proxy` or `tooling` only when the code has them.
-3. **Find the untagged tests.** Run `node tools/visualtdd/visualtdd.mjs --check`. Every untagged test is listed with its file and line.
-4. **Propose tags. Do not write them yet.** Read each untagged test, including its body and what it asserts, and propose `spec`, `cat` and, where the path does not decide it, `tier`, using the rules below. Show the proposals as a table (file:line, test name, spec, cat, tier, one-line reason) and flag the uncertain ones. Wait for the user to approve or correct them.
-5. **Write the approved tags.** Insert one tag line above each test (above annotations or decorators), matching the file's indentation. Change nothing else in the test files.
-6. **Check and build.** Run `--check`, which must exit 0, then run the tool without flags to write the dashboard. Run the project's own tests to confirm nothing broke. Report the counts from the summary: how many specs have no tests, which tiers are empty, and anything surprising.
+<!-- sync:tagging:start -->
+1. **Install.** Copy `visualtdd.mjs` and `template.html` from https://github.com/tokyooctober/VisualTDD into the project, for example into `tools/visualtdd/`. Ask the owner before adding files to their repo.
+2. **Create the config.** Run `node tools/visualtdd/visualtdd.mjs --init`, then edit `visualtdd.config.json`:
+   - `specs`: find where the project's requirements live. Use a Markdown spec that has ids (`"source": "markdown"`), a list in the config (`"source": "list"`), or `none` if the project has no spec. Never invent spec ids.
+   - `tiers` and `tierFromPath`: match the project's real layers and folder names. Add a tier such as `proxy` or `tooling` only if the code has one.
+3. **List the untagged tests.** Run `node tools/visualtdd/visualtdd.mjs --check`. Every untagged test is listed with its file and line.
+4. **Propose the tags before writing any.** Read each test, including what it asserts, and choose `spec`, `cat` and, where the path does not decide it, `tier`. Show the choices in a table (file:line, test name, spec, cat, tier, one-line reason), mark the uncertain ones, and wait for the owner to approve or correct them.
+5. **Write the approved tags.** Insert one tag line above each test (above any annotations or decorators), matching the file's indentation. Change nothing else in the test files.
+6. **Check and build.** Run `--check`, which must exit 0. Run the tool without options to write the dashboard. Run the project's own tests to confirm nothing broke. Report the specs with no tests and any empty tiers.
 
-## Classification rules
+### Choosing the category, spec and tier
 
-- **One category per test, chosen by what it asserts, not by what it touches.** "Submitting an empty name shows an error" asserts input handling, so it is `input`, even though it goes through the UI.
-- `logic`: rules and behaviour, including thresholds and boundaries of business rules ("within 300 m" is logic, not input).
-- `input`: only what a user (or caller) supplies: valid, invalid and boundary values, and their error messages.
-- `sec`: secrets and credentials, permissions, content filtering, privacy (what is logged or sent), what is reachable.
-- `err`: failures and recovery: offline, timeouts, 4xx and 5xx, retries, empty and error states.
-- `perf`: rate limits, queues, caching that exists to save calls, latency budgets, large data.
-- `data`: stored, read back, survives restart, migrations.
-- `integ`: a contract with another component or service: request shape, response parsing, recorded fixtures.
-- `ui`: visual and interaction checks: colours and design tokens, layout, navigation, accessibility.
-- **Spec:** cite the requirement the test proves. If none covers it, say so. Use an `extraSpecs` id (for example a task id) only with the user's agreement, and never invent a requirement. A test may cite two specs when it truly proves both.
-- **Tier:** where the code under test lives, not where the test file sits. Tests of build or one-off scripts are `tooling`, not the tier of the feature they serve.
-- When unsure between two categories, pick one, say why in the proposal table, and mark it for the user to confirm.
+- **Choose the category by what the test asserts, not by what it touches.** "Submitting an empty name shows an error" asserts input handling, so it is `input`, even though it goes through the UI. "Within 300 m" is a business rule, so it is `logic`, not `input`.
+- **Use these tie-breakers:**
+  - `input`: only what a user or caller supplies (valid, invalid and boundary values) and the messages for it.
+  - `err`: failures and recovery (offline, timeouts, 4xx and 5xx, retries, empty and error states).
+  - `sec`: secrets, permissions, privacy (what is logged or sent) and what is reachable.
+  - `integ`: a contract with another component or service (request shape, response parsing, recorded fixtures).
+  - `ui`: visual and interaction checks (colours, layout, navigation, accessibility).
+- **Cite the requirement the test proves.** If no spec covers the test, say so in the proposal. Use an `extraSpecs` id (such as a task id) only with the owner's agreement. A test may cite two specs only if it truly proves both.
+- **Choose the tier by where the code under test lives, not where the test file sits.** Tests of build scripts or one-off tools belong to a `tooling` tier, not to the tier of the feature they serve.
+- **When unsure between two categories,** pick one, give the reason in the proposal table and mark it for the owner to confirm.
+
+Do not add `--check` to CI or hooks unless the owner asks, and do not edit the generated dashboard: change the config or the template and rebuild.
+<!-- sync:tagging:end -->
 
 ## Colours
 
@@ -52,9 +54,3 @@ The user may paste a request copied from the map. It starts with `VisualTDD chan
 1. For each listed test, open the file and check that the test starting at that line has the listed name. If it doesn't, the file has changed since the map was built, so find the test by name in the same file. If it can't be found, or the name matches more than one test, report it and skip it.
 2. Change only that test's tag line, the one directly above it (above any annotations or decorators). Replace the value of `cat` and/or `tier`, and keep the spec ids, the field order and any other fields. If the request sets a tier and the tag has no `tier:` field, add `; tier: <key>` at the end. Leave a tag without `tier:` alone when the request sets only `cat`. The `now:` line shows the tier the path gave, not necessarily a `tier:` field.
 3. Show a short table of each change (file:line, test, before, after), then run `--check` (it must exit 0), the project's tests, and rebuild the map.
-
-## Do not
-
-- Do not add `--check` to CI or hooks unless the user asks.
-- Do not tag tests the user has not approved.
-- Do not edit the generated dashboard. Edit the config or the template and rebuild.

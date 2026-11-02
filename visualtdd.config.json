@@ -1,7 +1,7 @@
 {
   "title": "VisualTDD reference test map",
   "output": "docs/reference-test-map.html",
-  "testRoots": ["test/engine.test.mjs", "test/cli.test.mjs", "test/page.test.mjs", "test/scenarios.test.mjs"],
+  "testRoots": ["test/engine.test.mjs", "test/cli.test.mjs", "test/page.test.mjs", "test/scenarios.test.mjs", "test/skill-sync.test.mjs"],
   "languages": ["js"],
   "specs": {
     "source": "markdown",
@@ -12,12 +12,14 @@
   "tiers": [
     { "k": "engine", "name": "Engine", "what": "Config, scanning, specs and the model" },
     { "k": "cli", "name": "CLI", "what": "The command run as a process: flags, exit codes, files" },
-    { "k": "page", "name": "Page", "what": "The generated HTML dashboard" }
+    { "k": "page", "name": "Page", "what": "The generated HTML dashboard" },
+    { "k": "tooling", "name": "Tooling", "what": "Repo scripts that keep the docs and the skill in step" }
   ],
   "tierFromPath": [
     { "pattern": "(^|/)engine\\.test\\.mjs$", "tier": "engine" },
     { "pattern": "(^|/)cli\\.test\\.mjs$", "tier": "cli" },
     { "pattern": "(^|/)page\\.test\\.mjs$", "tier": "page" },
-    { "pattern": "(^|/)scenarios\\.test\\.mjs$", "tier": "page" }
+    { "pattern": "(^|/)scenarios\\.test\\.mjs$", "tier": "page" },
+    { "pattern": "(^|/)skill-sync\\.test\\.mjs$", "tier": "tooling" }
   ]
 }

@@ -93,6 +93,19 @@ test('a test that cites two specs is counted in both rows but once in the total'
   assert.equal(m.uniqueTests, 5);
 });
 
+// spec: FR-3, FR-6; cat: input
+test('test files and spec files with Windows (CRLF) line endings are read like any other', () => {
+  const dir = project({
+    'a.test.js': "// spec: FR-1; cat: logic\r\ntest('x', () => {});\r\n",
+    'spec.md': '| ID | x |\r\n|---|---|\r\n| FR-1 First | ... |\r\n',
+  });
+  const { model: m, problems } = build(dir, { languages: ['js'], tiers: ['all'], specs: { source: 'markdown', files: ['spec.md'] } });
+  assert.deepEqual(problems, []);
+  assert.equal(row(m, 'FR-1').name, 'First');
+  assert.equal(row(m, 'FR-1').tests.length, 1);
+  rmSync(dir, { recursive: true });
+});
+
 // spec: FR-3; cat: input
 test('tag fields may come in any order and with any spacing', () => {
   const dir = project({ 'src/domain/a.test.js': ['  //tier:data ;cat :  logic;  spec:  A ,B  ', "  test('x', () => {});"] });

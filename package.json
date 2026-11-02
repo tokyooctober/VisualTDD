@@ -8,6 +8,7 @@
   "files": ["visualtdd.mjs", "template.html"],
   "scripts": {
     "test": "node --test \"test/*.test.mjs\"",
+    "sync:skill": "node scripts/sync-skill.mjs",
     "map": "node visualtdd.mjs",
     "map:check": "node visualtdd.mjs --check"
   },
